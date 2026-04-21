@@ -118,7 +118,7 @@ export function Header() {
               <div className="size-10 bg-red-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">L</span>
               </div>
-              <span className="font-bold text-xl text-red-600">LaptopShop</span>
+              <span className="font-bold text-xl text-red-600">Laptop Store</span>
             </Link>
 
             {/* Search Bar */}
