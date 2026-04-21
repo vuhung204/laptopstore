@@ -1,192 +1,185 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { ProductCard } from '../components/ProductCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Button } from '../components/ui/button';
 import { ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import apiFetch, { ENDPOINTS } from '../config/apiConfig';
 
-const laptops = [
-  {
-    id: 1,
-    name: 'Dell XPS 13 Plus - Laptop siêu mỏng nhẹ cho doanh nhân',
-    brand: 'Dell',
-    price: 32990000,
-    originalPrice: 38990000,
-    rating: 4.8,
-    reviews: 245,
-    image: 'https://images.unsplash.com/photo-1759668358660-0d06064f0f84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBsYXB0b3AlMjBjb21wdXRlcnxlbnwxfHx8fDE3NzQ4ODczMDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i7-1360P',
-      ram: '16GB',
-      storage: '512GB SSD',
-      display: '13.4" FHD+',
-    },
-    badge: 'Giảm 15%',
-  },
-  {
-    id: 2,
-    name: 'MSI Gaming GE76 Raider - Laptop gaming cao cấp RTX 4080',
-    brand: 'MSI',
-    price: 54990000,
-    originalPrice: 62990000,
-    rating: 4.9,
-    reviews: 189,
-    image: 'https://images.unsplash.com/photo-1632603093711-0d93a0bcc6cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnYW1pbmclMjBsYXB0b3AlMjByZ2J8ZW58MXx8fHwxNzc0ODYyODQzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i9-13980HX',
-      ram: '32GB',
-      storage: '1TB SSD',
-      display: '17.3" QHD 240Hz',
-    },
-    badge: 'Hot',
-  },
-  {
-    id: 3,
-    name: 'MacBook Air M2 - Mỏng nhẹ đỉnh cao cho sáng tạo',
-    brand: 'Apple',
-    price: 28990000,
-    originalPrice: 32990000,
-    rating: 4.9,
-    reviews: 567,
-    image: 'https://images.unsplash.com/photo-1532198528077-0d9e4ca9bb40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWNib29rJTIwbGFwdG9wJTIwZGVza3xlbnwxfHx8fDE3NzQ5NTM2ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Apple M2 8-core',
-      ram: '16GB',
-      storage: '512GB SSD',
-      display: '13.6" Liquid Retina',
-    },
-  },
-  {
-    id: 4,
-    name: 'HP EliteBook 840 G9 - Laptop doanh nghiệp bảo mật cao',
-    brand: 'HP',
-    price: 25990000,
-    originalPrice: 29990000,
-    rating: 4.7,
-    reviews: 156,
-    image: 'https://images.unsplash.com/photo-1762341119317-fb5417c18407?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGxhcHRvcCUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NzQ5NTc1MTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i5-1235U',
-      ram: '8GB',
-      storage: '256GB SSD',
-      display: '14" FHD IPS',
-    },
-    badge: 'Bán chạy',
-  },
-  {
-    id: 5,
-    name: 'Asus ZenBook 14 OLED - Màn hình OLED tuyệt đẹp',
-    brand: 'Asus',
-    price: 21990000,
-    originalPrice: 24990000,
-    rating: 4.6,
-    reviews: 234,
-    image: 'https://images.unsplash.com/photo-1754928864131-21917af96dfd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1bHRyYWJvb2slMjB0aGluJTIwbGFwdG9wfGVufDF8fHx8MTc3NDg3NDI0N3ww&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i7-1165G7',
-      ram: '16GB',
-      storage: '512GB SSD',
-      display: '14" OLED 2.8K',
-    },
-  },
-  {
-    id: 6,
-    name: 'Lenovo ThinkPad X1 Carbon Gen 11 - Bền bỉ đa nhiệm',
-    brand: 'Lenovo',
-    price: 35990000,
-    rating: 4.8,
-    reviews: 198,
-    image: 'https://images.unsplash.com/photo-1589913649361-56d3f8762bc7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b3Jrc3RhdGlvbiUyMGxhcHRvcCUyMHBvd2VyZnVsfGVufDF8fHx8MTc3NDk1NzUxNXww&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i7-1355U',
-      ram: '16GB',
-      storage: '1TB SSD',
-      display: '14" WUXGA IPS',
-    },
-  },
-  {
-    id: 7,
-    name: 'Acer Aspire 5 - Laptop học tập văn phòng giá rẻ',
-    brand: 'Acer',
-    price: 12990000,
-    originalPrice: 14990000,
-    rating: 4.4,
-    reviews: 412,
-    image: 'https://images.unsplash.com/photo-1759668358660-0d06064f0f84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBsYXB0b3AlMjBjb21wdXRlcnxlbnwxfHx8fDE3NzQ4ODczMDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i5-1235U',
-      ram: '8GB',
-      storage: '512GB SSD',
-      display: '15.6" FHD IPS',
-    },
-    badge: 'Giá tốt',
-  },
-  {
-    id: 8,
-    name: 'Dell Inspiron 16 Plus - Màn hình lớn cho đồ họa',
-    brand: 'Dell',
-    price: 27990000,
-    rating: 4.7,
-    reviews: 178,
-    image: 'https://images.unsplash.com/photo-1632603093711-0d93a0bcc6cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnYW1pbmclMjBsYXB0b3AlMjByZ2J8ZW58MXx8fHwxNzc0ODYyODQzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'Intel Core i7-12700H',
-      ram: '16GB',
-      storage: '512GB SSD',
-      display: '16" QHD+',
-    },
-  },
-  {
-    id: 9,
-    name: 'HP Pavilion Gaming 15 - Gaming phổ thông giá tốt',
-    brand: 'HP',
-    price: 18990000,
-    originalPrice: 22990000,
-    rating: 4.5,
-    reviews: 289,
-    image: 'https://images.unsplash.com/photo-1754928864131-21917af96dfd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1bHRyYWJvb2slMjB0aGluJTIwbGFwdG9wfGVufDF8fHx8MTc3NDg3NDI0N3ww&ixlib=rb-4.1.0&q=80&w=1080',
-    specs: {
-      cpu: 'AMD Ryzen 5 5600H',
-      ram: '8GB',
-      storage: '512GB SSD',
-      display: '15.6" FHD 144Hz',
-    },
-    badge: 'Giảm giá',
-  },
-];
+// ============================================================
+// Types
+// ============================================================
 
+/** Khớp với ProductResponse từ backend Spring Boot */
+interface ProductResponse {
+  id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  basePrice: number;
+  salePrice: number | null;
+  brandName: string;
+  categoryName: string;
+  primaryImage: string;
+  cpu: string;
+  ram: string;
+  storage: string;
+  display: string;
+  avgRating: number;
+  reviewCount: number;
+}
+
+/** Spring Page<T> wrapper */
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;   // trang hiện tại (0-based) — khớp với Spring Page.number
+  size: number;
+}
+
+// ============================================================
+// Sort mapping: UI value → backend param
+// ============================================================
+const SORT_MAP: Record<string, string> = {
+  popular:    'newest',      // backend chưa hỗ trợ popularity, fallback newest
+  newest:     'newest',
+  'price-asc':  'price-asc',
+  'price-desc': 'price-desc',
+  rating:     'newest',      // backend chưa hỗ trợ rating sort, fallback newest
+};
+
+const PAGE_SIZE = 9;
+
+// ============================================================
+// Helpers
+// ============================================================
+
+/** Map ProductResponse từ API sang props của ProductCard */
+function mapToCardProps(p: ProductResponse) {
+  const price         = p.salePrice ?? p.basePrice;
+  const originalPrice = p.salePrice != null ? p.basePrice : undefined;
+  const badge         =
+    p.salePrice != null && p.salePrice < p.basePrice
+      ? `Giảm ${Math.round((1 - p.salePrice / p.basePrice) * 100)}%`
+      : undefined;
+
+  return {
+    id:            p.id,
+    name:          p.name,
+    brand:         p.brandName,
+    price,
+    originalPrice,
+    rating:        p.avgRating,
+    reviews:       p.reviewCount,
+    image:         p.primaryImage,
+    specs: {
+      cpu:     p.cpu,
+      ram:     p.ram,
+      storage: p.storage,
+      display: p.display,
+    },
+    badge,
+  };
+}
+
+// ============================================================
+// Component
+// ============================================================
 export default function PageItems() {
-  const [sortBy, setSortBy] = useState('popular');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
-  const totalPages = Math.ceil(laptops.length / itemsPerPage);
+  // ── State dữ liệu ──────────────────────────────────────────
+  const [products, setProducts]           = useState<ProductResponse[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages]       = useState(1);
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentLaptops = laptops.slice(startIndex, endIndex);
+  // ── State filter / sort / pagination ──────────────────────
+  const [sortBy, setSortBy]           = useState('popular');
+  const [currentPage, setCurrentPage] = useState(0); // 0-based để khớp API
 
+  // TODO: kết nối FilterSidebar khi component đó hỗ trợ props
+  // brandId, categoryId, minPrice, maxPrice
+
+  // ── State UI ───────────────────────────────────────────────
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // ── Fetch sản phẩm ─────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          size: String(PAGE_SIZE),
+          sort: SORT_MAP[sortBy] ?? 'newest',
+        });
+
+        const data = await apiFetch<PageResponse<ProductResponse>>(
+          `${ENDPOINTS.CATALOG.PRODUCTS}?${params.toString()}`
+        );
+
+        if (!cancelled) {
+          setProducts(data.content);
+          setTotalElements(data.totalElements);
+          setTotalPages(data.totalPages);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError('Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.');
+          console.error('Lỗi tải sản phẩm:', err);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => { cancelled = true; };
+  }, [sortBy, currentPage]);
+
+  // ── Handlers ───────────────────────────────────────────────
+  const handleSort = (value: string) => {
+    setCurrentPage(0);
+    setSortBy(value);
+  };
+
+  // ── Derived values ─────────────────────────────────────────
+  const startItem = totalElements > 0 ? currentPage * PAGE_SIZE + 1 : 0;
+  const endItem   = Math.min((currentPage + 1) * PAGE_SIZE, totalElements);
+
+  // ============================================================
+  // Render
+  // ============================================================
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="flex">
+        {/* FilterSidebar — TODO: truyền props brandId/categoryId/minPrice/maxPrice
+            khi FilterSidebar hỗ trợ controlled state */}
         <FilterSidebar />
-        
+
         <main className="flex-1 p-6">
           {/* Top Bar */}
           <div className="bg-white rounded-lg p-4 mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold mb-1">Tất cả sản phẩm</h1>
               <p className="text-sm text-gray-500">
-                Hiển thị {startIndex + 1}-{Math.min(endIndex, laptops.length)} của {laptops.length} sản phẩm
+                {loading
+                  ? 'Đang tải...'
+                  : `Hiển thị ${startItem}–${endItem} của ${totalElements} sản phẩm`}
               </p>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Sắp xếp:</span>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSort}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -199,56 +192,106 @@ export default function PageItems() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex gap-1 border rounded-lg p-1">
-                <Button variant="ghost" size="icon" className="size-8">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setViewMode('grid')}
+                >
                   <LayoutGrid className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="size-8">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setViewMode('list')}
+                >
                   <List className="size-4" />
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {currentLaptops.map((laptop) => (
-              <ProductCard key={laptop.id} {...laptop} />
-            ))}
-          </div>
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border h-72 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {/* Error state */}
+          {!loading && error && (
+            <div className="text-center py-20">
+              <p className="text-red-500 font-medium">{error}</p>
+              <Button
+                className="mt-4 bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => setCurrentPage(0)}
+              >
+                Thử lại
+              </Button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && products.length === 0 && (
+            <div className="text-center py-20 text-gray-400">
+              <p className="text-lg font-medium">Không tìm thấy sản phẩm</p>
+              <p className="text-sm mt-1">Thử thay đổi bộ lọc</p>
+            </div>
+          )}
+
+          {/* Products Grid / List */}
+          {!loading && !error && products.length > 0 && (
+            <div
+              className={`mb-8 ${
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                  : 'flex flex-col gap-4'
+              }`}
+            >
+              {products.map((p) => (
+                <ProductCard key={p.id} {...mapToCardProps(p)} />
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
               <Button
-                key={page}
-                variant={currentPage === page ? 'default' : 'outline'}
+                variant="outline"
                 size="icon"
-                onClick={() => setCurrentPage(page)}
+                onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
               >
-                {page}
+                <ChevronLeft className="size-4" />
               </Button>
-            ))}
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
+
+              {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="icon"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page + 1}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                disabled={currentPage === totalPages - 1}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          )}
         </main>
       </div>
     </div>
