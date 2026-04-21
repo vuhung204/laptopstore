@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { ShoppingCart, User, Search, Menu, Phone, Package, CreditCard, Tag, Newspaper, ChevronDown, Laptop } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, User, Search, Menu, Phone, Package, CreditCard, Tag, Newspaper, ChevronDown, Laptop, LogIn, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Link, useNavigate } from 'react-router';
-import menuImage from 'figma:asset/16656dd52d160782af938dcf8b65fdc48efba0ce.png';
+import { useAuth } from '../context/AuthContext';
+// import menuImage from 'figma:asset/16656dd52d160782af938dcf8b65fdc48efba0ce.png';
 
 const categories = [
   { id: 1, name: 'Laptop văn phòng', icon: Laptop },
@@ -73,6 +74,26 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
+  const { userLoggedIn, userFullName, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate('/');
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -110,11 +131,53 @@ export function Header() {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
-              <Link to="/profile">
-                <Button variant="ghost" size="icon">
-                  <User className="size-5" />
-                </Button>
-              </Link>
+              {userLoggedIn ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <div className="size-9 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      {userFullName ? userFullName.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <span className="text-red-600 font-semibold text-sm max-w-[120px] truncate hidden sm:block">
+                      {userFullName}
+                    </span>
+                    <ChevronDown className={`size-4 text-red-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                      <Link to="/profile" onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                        <User className="size-4" /> Trang cá nhân
+                      </Link>
+                      <Link to="/profile" onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                        <Package className="size-4" /> Đơn hàng của tôi
+                      </Link>
+                      <div className="border-t border-gray-100 my-1" />
+                      <button onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left">
+                        <LogOut className="size-4" /> Đăng xuất
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link to="/register">
+                    <Button variant="ghost" size="sm" className="text-gray-600 hover:text-red-600">
+                      Đăng ký
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2">
+                      <LogIn className="size-4" /> Đăng nhập
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
               <Link to="/cart">
                 <Button variant="ghost" size="icon" className="relative">
                   <ShoppingCart className="size-5" />
