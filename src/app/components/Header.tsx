@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ShoppingCart, User, Search, Menu, Phone, Package, CreditCard, Tag, Newspaper, ChevronDown, Laptop } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ShoppingCart, User, Search, Menu, Phone, Package, Tag, Newspaper, ChevronDown, ChevronRight, Laptop } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Link, useNavigate } from 'react-router';
@@ -56,9 +56,26 @@ const laptopBrands = {
     'Asus ExpertBook P3',
     'Asus ExpertBook P5',
   ],
+  lenovoThinkpad: [
+    'Lenovo Thinkpad E Series',
+    'Lenovo Thinkpad X Series',
+    'Lenovo Thinkpad T Series',
+    'Lenovo ThinkPad L Series',
+    'Lenovo Thinkbook',
+    'Lenovo Thinkpad P Series',
+    'Lenovo V Series',
+    'Phụ kiện Thinkpad',
+  ],
+  hp: [
+    'HP series',
+    'HP Spectre Series',
+    'HP Pavilion Series',
+    'HP Probook Series',
+    'HP Envy Series',
+    'HP EliteBook Series',
+    'HP OmniBook Series',
+  ],
   acer: ['Acer Swift', 'Acer Aspire', 'Aspire Lite'],
-  lenovo: ['Lenovo Thinkpad Series'],
-  hp: ['HP series'],
   msi: [
     'MSI Prestige 13 Series',
     'MSI Prestige 14 Series',
@@ -66,12 +83,37 @@ const laptopBrands = {
     'MSI Venture / VenturePro',
     'MSI Modern 14/15',
   ],
+  lenovo: [
+    'Lenovo Ideapad',
+    'Lenovo Yoga',
+    'Lenovo IdeaPad 5 Pro',
+  ],
+  lgGram: ['LG Gram'],
+  aiLaptop: [
+    'Intel Ultra 5 (CPU AI)',
+    'Intel Ultra 7 (CPU AI)',
+    'Intel Ultra 9 (CPU AI)',
+    'Ryzen AI 9 (CPU AI)',
+  ],
 };
 
 export function Header() {
-  const [showMegaMenu, setShowMegaMenu] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
+        setShowCategoryMenu(false);
+        setHoveredCategory(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,160 +177,173 @@ export function Header() {
             {/* Category Menu */}
             <div
               className="relative"
-              onMouseEnter={() => setShowMegaMenu(true)}
-              onMouseLeave={() => setShowMegaMenu(false)}
+              ref={categoryMenuRef}
             >
-              <button className="flex items-center gap-2 px-4 py-3 font-medium hover:bg-red-700 transition-colors">
+              <button
+                className="flex items-center gap-2 px-4 py-3 font-medium hover:bg-red-700 transition-colors"
+                onClick={() => { setShowCategoryMenu(!showCategoryMenu); setHoveredCategory(null); }}
+              >
                 <Menu className="size-5" />
                 DANH MỤC SẢN PHẨM
                 <ChevronDown className="size-4" />
               </button>
 
-              {/* Mega Menu Dropdown */}
-              {showMegaMenu && (
-                <div className="absolute top-full left-0 w-[980px] bg-white shadow-2xl z-50">
-                  <div className="flex">
-                    {/* Left Sidebar */}
-                    <div className="w-64 bg-gray-50 border-r">
-                      {categories.map((category) => {
-                        const Icon = category.icon;
-                        return (
-                          <Link
-                            key={category.id}
-                            to="/products"
-                            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors text-sm border-b border-gray-200"
-                          >
+              {/* Category Dropdown */}
+              {showCategoryMenu && (
+                <div
+                  className="absolute top-full left-0 w-[900px] bg-white shadow-2xl z-50 border-t-4 border-red-600 flex"
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
+                  {/* Left Sidebar - category list */}
+                  <div className="w-56 bg-white border-r">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      const isHovered = hoveredCategory === category.id;
+                      return (
+                        <div
+                          key={category.id}
+                          className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors text-sm border-b border-gray-100 ${isHovered ? 'bg-red-50 text-red-600 border-l-4 border-l-red-600' : 'text-gray-700 hover:bg-red-50 hover:text-red-600'}`}
+                          onMouseEnter={() => setHoveredCategory(category.id)}
+                        >
+                          <div className="flex items-center gap-2">
                             <Icon className="size-4" />
                             {category.name}
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    {/* Right Content - Laptop Brands Grid */}
-                    <div className="flex-1 p-6 grid grid-cols-3 gap-6">
-                      {/* Dell Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP DELL
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.dell.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Asus Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP ASUS
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.asus.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP ASUS EXPERTBOOK
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.asusExpert.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP ACER
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.acer.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* MSI & Others Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP MSI
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.msi.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP LENOVO THINKPAD
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.lenovo.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP HP
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.hp.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+                          </div>
+                          <ChevronRight className="size-3" />
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {/* Right Panel - brands submenu (shown for id=1 and id=2) */}
+                  {(hoveredCategory === 1 || hoveredCategory === 2) && (
+                    <div className="flex-1 p-6 overflow-y-auto max-h-[480px]">
+                      <div className="grid grid-cols-5 gap-4">
+                        {/* Row 1 */}
+                        <div>
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP DELL</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.dell.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP ASUS</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.asus.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">ASUS EXPERTBOOK</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.asusExpert.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LENOVO THINKPAD</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.lenovoThinkpad.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP HP</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.hp.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        {/* Row 2 */}
+                        <div className="mt-4">
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP ACER</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.acer.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP MSI</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.msi.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP LENOVO</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.lenovo.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LG GRAM</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.lgGram.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <h3 className="font-bold text-red-600 mb-2 pb-1 border-b-2 border-red-600 text-sm">LAPTOP CÔNG NGHỆ AI</h3>
+                          <ul className="space-y-1">
+                            {laptopBrands.aiLaptop.map((item, idx) => (
+                              <li key={idx}>
+                                <Link to="/products" className="text-xs text-gray-700 hover:text-red-600 transition-colors block">
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -83,6 +83,219 @@ const categories = [
   { name: 'Laptop Mỏng Nhẹ', image: 'https://images.unsplash.com/photo-1754928864131-21917af96dfd?w=400' },
 ];
 
+const gamingProducts = [
+  {
+    id: 101,
+    name: 'Asus ROG Strix G16 - Gaming RTX 4070 144Hz',
+    brand: 'Asus',
+    price: 42990000,
+    originalPrice: 49990000,
+    rating: 4.8,
+    reviews: 312,
+    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=600',
+    specs: {
+      cpu: 'Intel Core i9-13980HX',
+      ram: '16GB DDR5',
+      storage: '1TB NVMe SSD',
+      display: '16" QHD 165Hz',
+    },
+    badge: 'Hot',
+  },
+  {
+    id: 102,
+    name: 'Acer Predator Helios 16 - RTX 4080 240Hz',
+    brand: 'Acer',
+    price: 58990000,
+    originalPrice: 65990000,
+    rating: 4.9,
+    reviews: 198,
+    image: 'https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=600',
+    specs: {
+      cpu: 'Intel Core i9-13900HX',
+      ram: '32GB DDR5',
+      storage: '2TB NVMe SSD',
+      display: '16" QHD 240Hz',
+    },
+    badge: 'Gaming',
+  },
+  {
+    id: 103,
+    name: 'Lenovo Legion Pro 7i - i9 RTX 4070 Ti',
+    brand: 'Lenovo',
+    price: 51990000,
+    originalPrice: 59990000,
+    rating: 4.8,
+    reviews: 256,
+    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600',
+    specs: {
+      cpu: 'Intel Core i9-13900HX',
+      ram: '32GB DDR5',
+      storage: '1TB NVMe SSD',
+      display: '16" WQXGA 165Hz',
+    },
+    badge: 'Hot',
+  },
+  {
+    id: 104,
+    name: 'MSI Raider GE78 HX - RTX 4090 17.3"',
+    brand: 'MSI',
+    price: 74990000,
+    originalPrice: 84990000,
+    rating: 4.9,
+    reviews: 143,
+    image: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=600',
+    specs: {
+      cpu: 'Intel Core i9-13980HX',
+      ram: '64GB DDR5',
+      storage: '2TB NVMe SSD',
+      display: '17.3" QHD 240Hz',
+    },
+    badge: 'Gaming',
+  },
+];
+
+const officeProducts = [
+  {
+    id: 201,
+    name: 'Lenovo ThinkPad E14 Gen 5 - Doanh nghiệp bền bỉ',
+    brand: 'Lenovo',
+    price: 19990000,
+    originalPrice: 23990000,
+    rating: 4.7,
+    reviews: 421,
+    image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=600',
+    specs: {
+      cpu: 'Intel Core i5-1335U',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '14" FHD IPS',
+    },
+    badge: 'Bán chạy',
+  },
+  {
+    id: 202,
+    name: 'HP EliteBook 840 G10 - Bảo mật vân tay, IR cam',
+    brand: 'HP',
+    price: 27990000,
+    originalPrice: 31990000,
+    rating: 4.7,
+    reviews: 289,
+    image: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?w=600',
+    specs: {
+      cpu: 'Intel Core i7-1355U',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '14" FHD IPS',
+    },
+    badge: 'Giảm 10%',
+  },
+  {
+    id: 203,
+    name: 'Dell Latitude 5540 - Laptop doanh nghiệp cao cấp',
+    brand: 'Dell',
+    price: 24990000,
+    originalPrice: 28990000,
+    rating: 4.6,
+    reviews: 175,
+    image: 'https://images.unsplash.com/photo-1580927752452-89d86da3fa0a?w=600',
+    specs: {
+      cpu: 'Intel Core i5-1345U',
+      ram: '16GB',
+      storage: '256GB SSD',
+      display: '15.6" FHD',
+    },
+    badge: 'Bán chạy',
+  },
+  {
+    id: 204,
+    name: 'Asus ExpertBook B1 B1502 - Nhẹ 1.7kg văn phòng',
+    brand: 'Asus',
+    price: 17990000,
+    originalPrice: 20990000,
+    rating: 4.5,
+    reviews: 334,
+    image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600',
+    specs: {
+      cpu: 'Intel Core i5-1235U',
+      ram: '8GB',
+      storage: '512GB SSD',
+      display: '15.6" FHD',
+    },
+    badge: 'Giảm 10%',
+  },
+];
+
+const ultrabookProducts = [
+  {
+    id: 301,
+    name: 'LG Gram 14 2024 - Siêu nhẹ 999g, pin 25h',
+    brand: 'LG',
+    price: 35990000,
+    originalPrice: 39990000,
+    rating: 4.9,
+    reviews: 267,
+    image: 'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=600',
+    specs: {
+      cpu: 'Intel Core Ultra 7 155H',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '14" WUXGA IPS',
+    },
+    badge: 'Mới',
+  },
+  {
+    id: 302,
+    name: 'Samsung Galaxy Book4 Pro 360 - AMOLED 2X',
+    brand: 'Samsung',
+    price: 38990000,
+    originalPrice: 43990000,
+    rating: 4.8,
+    reviews: 189,
+    image: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600',
+    specs: {
+      cpu: 'Intel Core Ultra 7 155H',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '16" 3K AMOLED',
+    },
+    badge: 'Mới',
+  },
+  {
+    id: 303,
+    name: 'MacBook Air M3 - Chip M3 mạnh mẽ, mỏng 11.3mm',
+    brand: 'Apple',
+    price: 32990000,
+    originalPrice: 36990000,
+    rating: 4.9,
+    reviews: 892,
+    image: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=600',
+    specs: {
+      cpu: 'Apple M3 8-core',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '15.3" Liquid Retina',
+    },
+    badge: 'Siêu mỏng',
+  },
+  {
+    id: 304,
+    name: 'Dell XPS 13 9340 - InfinityEdge 13.4" mỏng 14.8mm',
+    brand: 'Dell',
+    price: 33990000,
+    originalPrice: 38990000,
+    rating: 4.8,
+    reviews: 221,
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600',
+    specs: {
+      cpu: 'Intel Core Ultra 5 125H',
+      ram: '16GB',
+      storage: '512GB SSD',
+      display: '13.4" FHD+ IPS',
+    },
+    badge: 'Siêu mỏng',
+  },
+];
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -90,23 +303,23 @@ export default function HomePage() {
 
       {/* Hero Banner */}
       <section className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid md:grid-cols-2 gap-4 items-center">
             <div>
               <Badge className="mb-4 bg-yellow-400 text-black hover:bg-yellow-500">
                 🔥 Khuyến mãi đặc biệt
               </Badge>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <h1 className="text-2xl md:text-3xl font-bold mb-4">
                 Laptop Chính Hãng Giá Tốt Nhất
               </h1>
-              <p className="text-xl mb-6 text-red-100">
+              <p className="text-sm mb-3 text-red-100">
                 Giảm giá lên đến 40% cho các dòng laptop cao cấp. Trả góp 0% lãi suất.
               </p>
               <div className="flex gap-4">
-                <Button size="lg" className="bg-white text-red-600 hover:bg-gray-100">
+                <Button size="sm" className="bg-white text-red-600 hover:bg-gray-100">
                   <Link to="/products">Mua ngay</Link>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-red-800">
+                <Button size="sm" variant="outline" className="border-white text-white hover:bg-red-800">
                   Xem thêm
                 </Button>
               </div>
@@ -115,7 +328,7 @@ export default function HomePage() {
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1580978608550-0390af9b72b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYXB0b3AlMjBzYWxlJTIwYmFubmVyJTIwcHJvbW90aW9ufGVufDF8fHx8MTc3NDk1Nzk3OHww&ixlib=rb-4.1.0&q=80&w=1080"
                 alt="Laptop Banner"
-                className="w-full h-auto rounded-lg shadow-2xl"
+                className="w-full max-h-40 object-cover rounded-lg shadow-2xl"
               />
             </div>
           </div>
@@ -209,6 +422,60 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gaming Products */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Laptop Gaming</h2>
+            <Link to="/products" className="text-red-600 hover:text-red-700 flex items-center gap-1">
+              Xem tất cả
+              <ChevronRight className="size-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {gamingProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Office Products */}
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Laptop Văn Phòng</h2>
+            <Link to="/products" className="text-red-600 hover:text-red-700 flex items-center gap-1">
+              Xem tất cả
+              <ChevronRight className="size-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {officeProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Ultrabook Products */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Laptop Mỏng Nhẹ / Ultrabook</h2>
+            <Link to="/products" className="text-red-600 hover:text-red-700 flex items-center gap-1">
+              Xem tất cả
+              <ChevronRight className="size-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {ultrabookProducts.map((product) => (
               <ProductCard key={product.id} {...product} />
             ))}
           </div>
