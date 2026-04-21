@@ -1,98 +1,95 @@
-import { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, User, Search, Menu, Phone, Package, CreditCard, Tag, Newspaper, ChevronDown, Laptop, LogIn, LogOut } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ShoppingCart, User, Search, Menu, Phone, Package, Tag, Newspaper, ChevronDown, ChevronRight, Laptop, LogIn, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
-// import menuImage from 'figma:asset/16656dd52d160782af938dcf8b65fdc48efba0ce.png';
 
 const categories = [
-  { id: 1, name: 'Laptop văn phòng', icon: Laptop },
-  { id: 2, name: 'Laptop Games & Đồ họa', icon: Laptop },
-  { id: 3, name: 'Máy Game chuyên nghiệp', icon: Laptop },
-  { id: 4, name: 'Sản phẩm clear', icon: Tag },
-  { id: 5, name: 'Sản phẩm Apple', icon: Laptop },
-  { id: 6, name: 'Máy tính bảng', icon: Laptop },
-  { id: 7, name: 'PC đồng bộ', icon: Laptop },
-  { id: 8, name: 'PCHM - Máy Tính Lắp Ráp', icon: Laptop },
-  { id: 9, name: 'PC Workstation & Server', icon: Laptop },
-  { id: 10, name: 'Linh kiện máy tính', icon: Laptop },
-  { id: 11, name: 'Màn Hình Máy Tính', icon: Laptop },
-  { id: 12, name: 'Gaming Gear', icon: Laptop },
-  { id: 13, name: 'Thiết bị văn phòng', icon: Laptop },
-  { id: 14, name: 'Thiết bị lưu trữ', icon: Laptop },
-  { id: 15, name: 'Phụ kiện laptop', icon: Laptop },
+  { id: 1, name: 'Laptop văn phòng', icon: Laptop, hasSubmenu: true },
+  { id: 2, name: 'Laptop Games & Đồ họa', icon: Laptop, hasSubmenu: true },
+  { id: 3, name: 'Máy Game chuyên nghiệp', icon: Laptop, hasSubmenu: true },
+  { id: 4, name: 'Sản phẩm clear', icon: Tag, hasSubmenu: false },
+  { id: 5, name: 'Sản phẩm Apple', icon: Laptop, hasSubmenu: true },
+  { id: 6, name: 'Máy tính bảng', icon: Laptop, hasSubmenu: false },
+  { id: 7, name: 'PC đồng bộ', icon: Laptop, hasSubmenu: false },
+  { id: 8, name: 'PCHM - Máy Tính Lắp Ráp', icon: Laptop, hasSubmenu: false },
+  { id: 9, name: 'PC Workstation & Server', icon: Laptop, hasSubmenu: false },
+  { id: 10, name: 'Linh kiện máy tính', icon: Laptop, hasSubmenu: false },
+  { id: 11, name: 'Màn Hình Máy Tính', icon: Laptop, hasSubmenu: false },
+  { id: 12, name: 'Gaming Gear', icon: Laptop, hasSubmenu: false },
+  { id: 13, name: 'Thiết bị văn phòng', icon: Laptop, hasSubmenu: false },
+  { id: 14, name: 'Thiết bị lưu trữ', icon: Laptop, hasSubmenu: false },
+  { id: 15, name: 'Phụ kiện laptop', icon: Laptop, hasSubmenu: true },
+  { id: 16, name: 'Thiết bị mạng', icon: Laptop, hasSubmenu: false },
 ];
 
-const laptopBrands = {
-  dell: [
-    'Dell 14 Series',
-    'Dell 15 Series',
-    'Dell 16 Series',
-    'Dell Plus Series',
-    'Dell Premium Series',
-    'Dell Pro Series',
-    'Dell Pro Plus Series',
-    'Dell Pro Premium Series',
-    'Dell Inspiron Series',
-    'Dell Vostro Series',
-    'Dell Latitude Series',
-    'Dell XPS Series',
-    'Phụ kiện chính hãng Dell',
+const submenuData: Record<number, { title: string; items: string[] }[]> = {
+  1: [
+    { title: 'Laptop Dell', items: ['Dell 14 Series', 'Dell 15 Series', 'Dell 16 Series', 'Dell Plus Series', 'Dell Premium Series', 'Dell Pro Series', 'Dell Pro Plus Series', 'Dell Pro Premium Series', 'Dell Inspiron Series', 'Dell Vostro Series', 'Dell Latitude Series', 'Dell XPS Series', 'Phụ kiện chính hãng Dell'] },
+    { title: 'Laptop Asus', items: ['Asus Zenbook', 'Asus Vivobook Flip', 'Asus Vivobook S, K', 'Asus Vivobook M', 'Asus Vivobook A', 'Asus Vivobook X', 'Asus Vivobook Go'] },
+    { title: 'Laptop Asus ExpertBook', items: ['Asus ExpertBook B', 'Asus ExpertBook B3', 'Asus ExpertBook B5', 'Asus ExpertBook P1', 'Asus ExpertBook P3', 'Asus ExpertBook P5'] },
+    { title: 'Laptop Lenovo ThinkPad', items: ['Lenovo Thinkpad E', 'Lenovo Thinkpad X', 'Lenovo Thinkpad T', 'Lenovo ThinkPad L', 'Lenovo Thinkbook', 'Lenovo Thinkpad P', 'Lenovo V Series', 'Phụ kiện Thinkpad'] },
+    { title: 'Laptop HP', items: ['HP series', 'HP Spectre Series', 'HP Pavilion Series', 'HP Probook Series', 'HP Envy Series', 'HP EliteBook Series', 'HP OmniBook Series'] },
+    { title: 'Laptop Acer', items: ['Acer Swift', 'Acer Aspire', 'Aspire Lite'] },
+    { title: 'Laptop MSI', items: ['MSI Prestige 13 Series', 'MSI Prestige 14 Series', 'MSI Prestige 16 Series', 'MSI Venture / VenturePro', 'MSI Modern 14/15'] },
+    { title: 'Laptop Lenovo', items: ['Lenovo Ideapad', 'Lenovo Yoga', 'Lenovo IdeaPad 5 Pro'] },
+    { title: 'Laptop LG Gram', items: ['LG Gram'] },
+    { title: 'Laptop công nghệ AI', items: ['Intel Ultra 5 (CPU AI)', 'Intel Ultra 7 (CPU AI)', 'Intel Ultra 9 (CPU AI)', 'Ryzen AI 9 (CPU AI)'] },
   ],
-  asus: [
-    'Asus Zenbook',
-    'Asus Vivobook Flip',
-    'Asus Vivobook S, K',
-    'Asus Vivobook M',
-    'Asus Vivobook A',
-    'Asus Vivobook X',
-    'Asus Vivobook Go',
+  2: [
+    { title: 'Laptop Gaming Asus ROG', items: ['ROG Strix G16', 'ROG Strix G18', 'ROG Zephyrus G14', 'ROG Zephyrus M16', 'TUF Gaming A15', 'TUF Gaming F15'] },
+    { title: 'Laptop Gaming MSI', items: ['MSI Raider GE78', 'MSI Titan GT77', 'MSI Stealth 16', 'MSI Vector GP76', 'MSI Pulse GL76', 'MSI Katana GF76'] },
+    { title: 'Laptop Gaming Lenovo', items: ['Legion Pro 7i', 'Legion 5 Pro', 'Legion 5i', 'LOQ 15', 'IdeaPad Gaming 3'] },
+    { title: 'Laptop Gaming Acer', items: ['Predator Helios 300', 'Predator Helios 16', 'Nitro 5', 'Nitro 17', 'Aspire Vero 16'] },
+    { title: 'Laptop Gaming HP', items: ['HP Omen 16', 'HP Omen 17', 'HP Victus 15', 'HP Victus 16'] },
   ],
-  asusExpert: [
-    'Asus ExpertBook B',
-    'Asus ExpertBook B3',
-    'Asus ExpertBook B5',
-    'Asus ExpertBook P1',
-    'Asus ExpertBook P3',
-    'Asus ExpertBook P5',
+  3: [
+    { title: 'Máy Game PC', items: ['Alienware Aurora', 'MSI MEG Trident', 'Asus ROG Strix GA', 'Lenovo Legion Tower'] },
   ],
-  acer: ['Acer Swift', 'Acer Aspire', 'Aspire Lite'],
-  lenovo: ['Lenovo Thinkpad Series'],
-  hp: ['HP series'],
-  msi: [
-    'MSI Prestige 13 Series',
-    'MSI Prestige 14 Series',
-    'MSI Prestige 16 Series',
-    'MSI Venture / VenturePro',
-    'MSI Modern 14/15',
+  5: [
+    { title: 'MacBook', items: ['MacBook Air M2', 'MacBook Air M3', 'MacBook Pro 14" M3', 'MacBook Pro 16" M3', 'MacBook Pro M3 Max'] },
+    { title: 'iPad', items: ['iPad Pro M4', 'iPad Air M2', 'iPad mini 6', 'iPad Gen 10'] },
+  ],
+  15: [
+    { title: 'Phụ kiện Laptop', items: ['Túi laptop', 'Balo laptop', 'Chuột không dây', 'Bàn phím bluetooth', 'Hub USB-C', 'Đế tản nhiệt', 'Màn hình di động'] },
   ],
 };
 
 export function Header() {
-  const [showMegaMenu, setShowMegaMenu] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const { userLoggedIn, userFullName, logout } = useAuth();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Đóng category menu khi click ngoài
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowCategoryMenu(false);
+        setHoveredCategory(null);
       }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
-    navigate('/');
-  };
+  // Đóng user menu khi click ngoài
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,12 +98,21 @@ export function Header() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate('/');
+  };
+
+  const activeSubmenu = hoveredCategory ? submenuData[hoveredCategory] : null;
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
-      {/* Top Bar - Logo and Search */}
+      {/* Top Bar */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-3">
+
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
               <div className="size-10 bg-red-600 rounded-lg flex items-center justify-center">
@@ -131,6 +137,7 @@ export function Header() {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+              {/* User: đã đăng nhập */}
               {userLoggedIn ? (
                 <div className="relative" ref={userMenuRef}>
                   <button
@@ -145,6 +152,7 @@ export function Header() {
                     </span>
                     <ChevronDown className={`size-4 text-red-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                   </button>
+
                   {showUserMenu && (
                     <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
                       <Link to="/profile" onClick={() => setShowUserMenu(false)}
@@ -164,6 +172,7 @@ export function Header() {
                   )}
                 </div>
               ) : (
+                /* User: chưa đăng nhập */
                 <div className="flex items-center gap-2">
                   <Link to="/register">
                     <Button variant="ghost" size="sm" className="text-gray-600 hover:text-red-600">
@@ -172,12 +181,14 @@ export function Header() {
                   </Link>
                   <Link to="/login">
                     <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2">
-                      <LogIn className="size-4" /> Đăng nhập
+                      <LogIn className="size-4" />
+                      Đăng nhập
                     </Button>
                   </Link>
                 </div>
               )}
 
+              {/* Giỏ hàng */}
               <Link to="/cart">
                 <Button variant="ghost" size="icon" className="relative">
                   <ShoppingCart className="size-5" />
@@ -187,6 +198,7 @@ export function Header() {
                 </Button>
               </Link>
             </div>
+
           </div>
         </div>
       </div>
@@ -195,196 +207,105 @@ export function Header() {
       <div className="bg-red-600 text-white">
         <div className="container mx-auto px-4">
           <nav className="flex items-center">
-            {/* Category Menu */}
-            <div
-              className="relative"
-              onMouseEnter={() => setShowMegaMenu(true)}
-              onMouseLeave={() => setShowMegaMenu(false)}
-            >
-              <button className="flex items-center gap-2 px-4 py-3 font-medium hover:bg-red-700 transition-colors">
+
+            {/* Category Menu Button */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => {
+                  setShowCategoryMenu(!showCategoryMenu);
+                  setHoveredCategory(null);
+                }}
+                className="flex items-center gap-2 px-4 py-3 font-bold hover:bg-red-800 transition-colors bg-red-700"
+              >
                 <Menu className="size-5" />
                 DANH MỤC SẢN PHẨM
-                <ChevronDown className="size-4" />
+                <ChevronDown className={`size-4 transition-transform duration-200 ${showCategoryMenu ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Mega Menu Dropdown */}
-              {showMegaMenu && (
-                <div className="absolute top-full left-0 w-[980px] bg-white shadow-2xl z-50">
-                  <div className="flex">
-                    {/* Left Sidebar */}
-                    <div className="w-64 bg-gray-50 border-r">
-                      {categories.map((category) => {
-                        const Icon = category.icon;
-                        return (
-                          <Link
-                            key={category.id}
-                            to="/products"
-                            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors text-sm border-b border-gray-200"
-                          >
-                            <Icon className="size-4" />
-                            {category.name}
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    {/* Right Content - Laptop Brands Grid */}
-                    <div className="flex-1 p-6 grid grid-cols-3 gap-6">
-                      {/* Dell Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP DELL
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.dell.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Asus Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP ASUS
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.asus.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP ASUS EXPERTBOOK
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.asusExpert.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP ACER
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.acer.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* MSI & Others Column */}
-                      <div>
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600">
-                          LAPTOP MSI
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.msi.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP LENOVO THINKPAD
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.lenovo.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <h3 className="font-bold text-red-600 mb-3 pb-2 border-b-2 border-red-600 mt-6">
-                          LAPTOP HP
-                        </h3>
-                        <ul className="space-y-2">
-                          {laptopBrands.hp.map((item, idx) => (
-                            <li key={idx}>
-                              <Link
-                                to="/products"
-                                className="text-sm text-gray-700 hover:text-red-600 transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+              {/* Dropdown */}
+              {showCategoryMenu && (
+                <div
+                  className="absolute top-full left-0 z-50 shadow-2xl border-t-2 border-red-600 flex bg-white"
+                  style={{ minWidth: activeSubmenu ? '960px' : '240px' }}
+                >
+                  {/* Left: Category List */}
+                  <div className="w-60 bg-white border-r border-gray-200 flex-shrink-0">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      const isHovered = hoveredCategory === category.id;
+                      return (
+                        <div
+                          key={category.id}
+                          className={`flex items-center justify-between px-4 py-2.5 cursor-pointer text-sm transition-all border-b border-gray-100
+                            ${isHovered
+                              ? 'bg-red-50 text-red-600 border-l-4 border-l-red-600'
+                              : 'text-gray-700 hover:bg-red-50 hover:text-red-600 border-l-4 border-l-transparent'
+                            }`}
+                          onMouseEnter={() => setHoveredCategory(category.hasSubmenu ? category.id : null)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon className="size-4 flex-shrink-0" />
+                            <span>{category.name}</span>
+                          </div>
+                          {category.hasSubmenu && (
+                            <ChevronRight className="size-4 flex-shrink-0 text-gray-400" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {/* Right: Submenu Panel */}
+                  {activeSubmenu && (
+                    <div className="flex-1 p-6 bg-white overflow-y-auto max-h-[480px]">
+                      <div className="grid grid-cols-5 gap-5">
+                        {activeSubmenu.map((group, idx) => (
+                          <div key={idx}>
+                            <h3 className="font-bold text-red-600 text-sm mb-3 pb-1 border-b border-red-200">
+                              {group.title}
+                            </h3>
+                            <ul className="space-y-1.5">
+                              {group.items.map((item, itemIdx) => (
+                                <li key={itemIdx}>
+                                  <Link
+                                    to="/products"
+                                    className="text-xs text-gray-700 hover:text-red-600 transition-colors block py-0.5"
+                                    onClick={() => setShowCategoryMenu(false)}
+                                  >
+                                    {item}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Other Menu Items */}
-            <Link
-              to="#"
-              className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors"
-            >
+            {/* Nav Links */}
+            <Link to="#" className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors text-sm">
               <Phone className="size-4" />
               Bán hàng trực tuyến
             </Link>
-            <Link
-              to="#"
-              className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors"
-            >
+            <Link to="#" className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors text-sm">
               <Package className="size-4" />
               Bán hàng trả góp
             </Link>
-            <Link
-              to="#"
-              className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors"
-            >
+            <Link to="#" className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors text-sm">
               <Tag className="size-4" />
               Khuyến mại
             </Link>
-            <Link
-              to="#"
-              className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors"
-            >
+            <Link to="#" className="flex items-center gap-2 px-4 py-3 hover:bg-red-700 transition-colors text-sm">
               <Newspaper className="size-4" />
               Tin tức
             </Link>
+            <div className="ml-auto flex items-center bg-yellow-400 text-black font-bold px-4 py-2 text-sm">
+              🔥 DEAL GIÁ SỐC
+            </div>
           </nav>
         </div>
       </div>
