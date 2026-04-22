@@ -139,7 +139,16 @@ export function Header() {
             <div className="flex items-center gap-3">
               {/* User: đã đăng nhập */}
               {userLoggedIn ? (
-                <div className="relative" ref={userMenuRef}>
+                <div className="relative flex items-center gap-3" ref={userMenuRef}>
+                  {/* Giỏ hàng */}
+                  <Link to="/cart">
+                    <Button variant="ghost" size="icon" className="relative">
+                      <ShoppingCart className="size-5" />
+                      <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        3
+                      </span>
+                    </Button>
+                  </Link>
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
@@ -188,15 +197,7 @@ export function Header() {
                 </div>
               )}
 
-              {/* Giỏ hàng */}
-              <Link to="/cart">
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="size-5" />
-                  <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </Button>
-              </Link>
+              
             </div>
 
           </div>

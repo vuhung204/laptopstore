@@ -1,97 +1,103 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { Header } from '../components/Header';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import {
-  ChevronRight,
-  Minus,
-  Plus,
-  X,
-  ShoppingCart,
-  Tag,
-  Truck,
-  Shield,
-  ArrowLeft,
+  ChevronRight, Minus, Plus, X, ShoppingCart,
+  Tag, Truck, Shield, ArrowLeft, Loader2,
 } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
-interface CartItem {
-  id: number;
-  name: string;
-  brand: string;
-  price: number;
-  image: string;
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:9765';
+
+interface CartItemResponse {
+  productId: number;
+  productName: string;
+  brandName: string | null;
+  image: string | null;
+  unitPrice: number;
   quantity: number;
-  specs: {
-    cpu: string;
-    ram: string;
-    storage: string;
-  };
+  totalPrice: number;
+  cpu: string | null;
+  ram: string | null;
+  storage: string | null;
 }
 
-const initialCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: 'Dell XPS 13 Plus - Laptop siêu mỏng nhẹ cho doanh nhân',
-    brand: 'Dell',
-    price: 32990000,
-    image:
-      'https://images.unsplash.com/photo-1759668358660-0d06064f0f84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBsYXB0b3AlMjBjb21wdXRlcnxlbnwxfHx8fDE3NzQ4ODczMDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    quantity: 1,
-    specs: {
-      cpu: 'Intel Core i7-1360P',
-      ram: '16GB',
-      storage: '512GB SSD',
-    },
-  },
-  {
-    id: 2,
-    name: 'MSI Gaming GE76 Raider - Laptop gaming cao cấp RTX 4080',
-    brand: 'MSI',
-    price: 54990000,
-    image:
-      'https://images.unsplash.com/photo-1632603093711-0d93a0bcc6cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnYW1pbmclMjBsYXB0b3AlMjByZ2J8ZW58MXx8fHwxNzc0ODYyODQzfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    quantity: 1,
-    specs: {
-      cpu: 'Intel Core i9-13980HX',
-      ram: '32GB',
-      storage: '1TB SSD',
-    },
-  },
-  {
-    id: 3,
-    name: 'MacBook Air M2 - Mỏng nhẹ đỉnh cao cho sáng tạo',
-    brand: 'Apple',
-    price: 28990000,
-    image:
-      'https://images.unsplash.com/photo-1532198528077-0d9e4ca9bb40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWNib29rJTIwbGFwdG9wJTIwZGVza3xlbnwxfHx8fDE3NzQ5NTM2ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    quantity: 2,
-    specs: {
-      cpu: 'Apple M2 8-core',
-      ram: '16GB',
-      storage: '512GB SSD',
-    },
-  },
-];
+interface CartResponse {
+  items: CartItemResponse[];
+  totalItems: number;
+  totalPrice: number;
+}
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
+  const navigate = useNavigate();
+  const [cart, setCart] = useState<CartResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  // ✅ Đúng key khớp với AuthContext
+  const getToken = () =>
+    localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+  const fetchCart = async () => {
+    const token = getToken();
+    if (!token) { navigate('/login'); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/cart`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) { navigate('/login'); return; }
+      if (!res.ok) throw new Error('Không thể tải giỏ hàng');
+      const data: CartResponse = await res.json();
+      setCart(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const updateQuantity = async (productId: number, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    const token = getToken();
+    if (!token) return;
+    setUpdatingId(productId);
+    try {
+      const res = await fetch(`${API_URL}/api/cart/${productId}?quantity=${newQuantity}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data: CartResponse = await res.json();
+        setCart(data);
+      }
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const removeItem = async (productId: number) => {
+    const token = getToken();
+    if (!token) return;
+    setUpdatingId(productId);
+    try {
+      const res = await fetch(`${API_URL}/api/cart/${productId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) await fetchCart();
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const applyCoupon = () => {
@@ -106,19 +112,36 @@ export default function CartPage() {
     }
   };
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const shippingFee = subtotal >= 10000000 ? 0 : 200000;
-  const discountAmount = (subtotal * discount) / 100;
-  const total = subtotal - discountAmount + shippingFee;
-
-  if (cartItems.length === 0) {
+  // Loading
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="size-10 animate-spin text-red-600" />
+        </div>
+      </div>
+    );
+  }
 
+  // Error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={fetchCart}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty cart
+  if (!cart || cart.items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="bg-white rounded-lg border p-12 text-center">
             <div className="max-w-md mx-auto">
@@ -127,8 +150,7 @@ export default function CartPage() {
               </div>
               <h2 className="text-2xl font-bold mb-3">Giỏ hàng trống</h2>
               <p className="text-gray-600 mb-6">
-                Bạn chưa có sản phẩm nào trong giỏ hàng. Hãy khám phá các sản phẩm
-                tuyệt vời của chúng tôi!
+                Bạn chưa có sản phẩm nào trong giỏ hàng. Hãy khám phá các sản phẩm tuyệt vời của chúng tôi!
               </p>
               <Link to="/products">
                 <Button size="lg" className="bg-red-600 hover:bg-red-700">
@@ -143,6 +165,11 @@ export default function CartPage() {
     );
   }
 
+  const subtotal = cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const shippingFee = subtotal >= 10000000 ? 0 : 200000;
+  const discountAmount = (subtotal * discount) / 100;
+  const total = subtotal - discountAmount + shippingFee;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -151,9 +178,7 @@ export default function CartPage() {
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-red-600">
-              Trang chủ
-            </Link>
+            <Link to="/" className="hover:text-red-600">Trang chủ</Link>
             <ChevronRight className="size-4" />
             <span className="text-gray-900">Giỏ hàng</span>
           </nav>
@@ -168,32 +193,21 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-lg border p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold">
-                  Sản phẩm ({cartItems.length} sản phẩm)
-                </h2>
-                <Link
-                  to="/products"
-                  className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
-                >
+                <h2 className="font-semibold">Sản phẩm ({cart.items.length} sản phẩm)</h2>
+                <Link to="/products" className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1">
                   <ArrowLeft className="size-4" />
                   Tiếp tục mua sắm
                 </Link>
               </div>
 
               <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex gap-4 pb-4 border-b last:border-b-0"
-                  >
+                {cart.items.map((item) => (
+                  <div key={item.productId} className="flex gap-4 pb-4 border-b last:border-b-0">
                     {/* Image */}
-                    <Link
-                      to={`/product/${item.id}`}
-                      className="flex-shrink-0"
-                    >
+                    <Link to={`/product/${item.productId}`} className="flex-shrink-0">
                       <ImageWithFallback
-                        src={item.image}
-                        alt={item.name}
+                        src={item.image || ''}
+                        alt={item.productName}
                         className="w-32 h-32 object-cover rounded-lg border"
                       />
                     </Link>
@@ -202,28 +216,31 @@ export default function CartPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <Badge
-                            variant="outline"
-                            className="text-red-600 border-red-600 mb-2"
-                          >
-                            {item.brand}
-                          </Badge>
-                          <Link to={`/product/${item.id}`}>
+                          {item.brandName && (
+                            <Badge variant="outline" className="text-red-600 border-red-600 mb-2">
+                              {item.brandName}
+                            </Badge>
+                          )}
+                          <Link to={`/product/${item.productId}`}>
                             <h3 className="font-medium mb-2 hover:text-red-600 line-clamp-2">
-                              {item.name}
+                              {item.productName}
                             </h3>
                           </Link>
                           <div className="text-sm text-gray-600 space-y-1">
-                            <p>CPU: {item.specs.cpu}</p>
-                            <p>RAM: {item.specs.ram}</p>
-                            <p>Ổ cứng: {item.specs.storage}</p>
+                            {item.cpu && <p>CPU: {item.cpu}</p>}
+                            {item.ram && <p>RAM: {item.ram}</p>}
+                            {item.storage && <p>Ổ cứng: {item.storage}</p>}
                           </div>
                         </div>
                         <button
-                          onClick={() => removeItem(item.id)}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          onClick={() => removeItem(item.productId)}
+                          disabled={updatingId === item.productId}
+                          className="text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50 ml-2"
                         >
-                          <X className="size-5" />
+                          {updatingId === item.productId
+                            ? <Loader2 className="size-5 animate-spin" />
+                            : <X className="size-5" />
+                          }
                         </button>
                       </div>
 
@@ -234,33 +251,34 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="size-8"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
-                            }
+                            disabled={item.quantity <= 1 || updatingId === item.productId}
+                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                           >
                             <Minus className="size-4" />
                           </Button>
                           <span className="px-4 font-medium min-w-[3rem] text-center">
-                            {item.quantity}
+                            {updatingId === item.productId
+                              ? <Loader2 className="size-4 animate-spin mx-auto" />
+                              : item.quantity
+                            }
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="size-8"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
-                            }
+                            disabled={updatingId === item.productId}
+                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                           >
                             <Plus className="size-4" />
                           </Button>
                         </div>
                         <div className="text-right">
                           <p className="text-xl font-bold text-red-600">
-                            {(item.price * item.quantity).toLocaleString('vi-VN')}₫
+                            {(item.unitPrice * item.quantity).toLocaleString('vi-VN')}₫
                           </p>
                           {item.quantity > 1 && (
                             <p className="text-sm text-gray-500">
-                              {item.price.toLocaleString('vi-VN')}₫ / sản phẩm
+                              {item.unitPrice.toLocaleString('vi-VN')}₫ / sản phẩm
                             </p>
                           )}
                         </div>
@@ -312,21 +330,16 @@ export default function CartPage() {
 
               {/* Coupon */}
               <div className="mb-6">
-                <label className="text-sm font-medium mb-2 block">
-                  Mã giảm giá
-                </label>
+                <label className="text-sm font-medium mb-2 block">Mã giảm giá</label>
                 <div className="flex gap-2">
                   <Input
                     type="text"
                     placeholder="Nhập mã giảm giá"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
                   />
-                  <Button
-                    variant="outline"
-                    onClick={applyCoupon}
-                    className="whitespace-nowrap"
-                  >
+                  <Button variant="outline" onClick={applyCoupon} className="whitespace-nowrap">
                     Áp dụng
                   </Button>
                 </div>
@@ -347,33 +360,26 @@ export default function CartPage() {
               <div className="space-y-3 pb-4 border-b">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tạm tính</span>
-                  <span className="font-medium">
-                    {subtotal.toLocaleString('vi-VN')}₫
-                  </span>
+                  <span className="font-medium">{subtotal.toLocaleString('vi-VN')}₫</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Giảm giá ({discount}%)</span>
-                    <span className="font-medium text-green-600">
-                      -{discountAmount.toLocaleString('vi-VN')}₫
-                    </span>
+                    <span className="font-medium text-green-600">-{discountAmount.toLocaleString('vi-VN')}₫</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Phí vận chuyển</span>
                   <span className="font-medium">
-                    {shippingFee === 0 ? (
-                      <span className="text-green-600">Miễn phí</span>
-                    ) : (
-                      `${shippingFee.toLocaleString('vi-VN')}₫`
-                    )}
+                    {shippingFee === 0
+                      ? <span className="text-green-600">Miễn phí</span>
+                      : `${shippingFee.toLocaleString('vi-VN')}₫`
+                    }
                   </span>
                 </div>
                 {shippingFee > 0 && (
                   <p className="text-xs text-gray-500">
-                    Mua thêm{' '}
-                    {(10000000 - subtotal).toLocaleString('vi-VN')}₫ để được miễn
-                    phí vận chuyển
+                    Mua thêm {(10000000 - subtotal).toLocaleString('vi-VN')}₫ để được miễn phí vận chuyển
                   </p>
                 )}
               </div>
@@ -381,31 +387,21 @@ export default function CartPage() {
               {/* Total */}
               <div className="flex justify-between items-center py-4 border-b">
                 <span className="text-lg font-bold">Tổng cộng</span>
-                <span className="text-2xl font-bold text-red-600">
-                  {total.toLocaleString('vi-VN')}₫
-                </span>
+                <span className="text-2xl font-bold text-red-600">{total.toLocaleString('vi-VN')}₫</span>
               </div>
 
               {/* Checkout Button */}
-              <Button
-                size="lg"
-                className="w-full mt-6 bg-red-600 hover:bg-red-700"
-              >
-                <Link to="/checkout" className="flex items-center justify-center w-full">
+              <Link to="/checkout">
+                <Button size="lg" className="w-full mt-6 bg-red-600 hover:bg-red-700">
                   Tiến hành thanh toán
-                </Link>
-              </Button>
+                </Button>
+              </Link>
 
-              {/* VAT Notice */}
-              <p className="text-xs text-gray-500 text-center mt-4">
-                (Giá đã bao gồm VAT)
-              </p>
+              <p className="text-xs text-gray-500 text-center mt-4">(Giá đã bao gồm VAT)</p>
 
               {/* Payment Methods */}
               <div className="mt-6 pt-6 border-t">
-                <p className="text-sm text-gray-600 mb-3">
-                  Phương thức thanh toán:
-                </p>
+                <p className="text-sm text-gray-600 mb-3">Phương thức thanh toán:</p>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">COD</Badge>
                   <Badge variant="outline">Chuyển khoản</Badge>

@@ -1,195 +1,552 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import {
+  AlertCircle,
+  Bell,
+  Camera,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  CreditCard,
+  Edit,
+  Eye,
+  Heart,
+  Loader2,
+  Lock,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  Plus,
+  Save,
+  Settings,
+  Star,
+  Trash2,
+  Truck,
+  User,
+  X,
+} from 'lucide-react';
 import { Header } from '../components/Header';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import {
-  User,
-  Package,
-  Heart,
-  MapPin,
-  Lock,
-  Bell,
-  ChevronRight,
-  Camera,
-  Edit,
-  Trash2,
-  Plus,
-  Phone,
-  Mail,
-  Calendar,
-  CreditCard,
-  Eye,
-  Star,
-  Truck,
-  CheckCircle,
-  Clock,
-  X,
-  Settings,
-} from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import api, { ENDPOINTS } from '../config/apiConfig';
+import { useAuth } from '../context/AuthContext';
 
-const userData = {
-  name: 'Nguyễn Văn A',
-  email: 'nguyenvana@email.com',
-  phone: '0123456789',
-  avatar: 'https://images.unsplash.com/photo-1704726135027-9c6f034cfa41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1c2VyJTIwcHJvZmlsZSUyMGF2YXRhciUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NTIzMDUyMHww&ixlib=rb-4.1.0&q=80&w=1080',
-  joinDate: '15/03/2023',
-  totalOrders: 24,
-  totalSpent: 45980000,
-  memberLevel: 'Gold',
-};
+type ActiveTab =
+  | 'overview'
+  | 'profile'
+  | 'orders'
+  | 'wishlist'
+  | 'addresses'
+  | 'password'
+  | 'notifications';
 
-const orders = [
-  {
-    id: 'DH001234',
-    date: '25/03/2026',
-    items: [
-      {
-        name: 'Dell XPS 13 Plus',
-        image: 'https://images.unsplash.com/photo-1759668358660-0d06064f0f84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBsYXB0b3AlMjBjb21wdXRlcnxlbnwxfHx8fDE3NzQ4ODczMDV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-        quantity: 1,
-        price: 32990000,
-      },
-    ],
-    total: 32990000,
-    status: 'delivered',
-    statusText: 'Đã giao hàng',
-  },
-  {
-    id: 'DH001235',
-    date: '30/03/2026',
-    items: [
-      {
-        name: 'Asus ZenBook 14 OLED',
-        image: 'https://images.unsplash.com/photo-1754928864131-21917af96dfd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1bHRyYWJvb2slMjB0aGluJTIwbGFwdG9wfGVufDF8fHx8MTc3NDg3NDI0N3ww&ixlib=rb-4.1.0&q=80&w=1080',
-        quantity: 1,
-        price: 21990000,
-      },
-    ],
-    total: 21990000,
-    status: 'shipping',
-    statusText: 'Đang giao hàng',
-  },
-  {
-    id: 'DH001236',
-    date: '02/04/2026',
-    items: [
-      {
-        name: 'HP EliteBook 840 G9',
-        image: 'https://images.unsplash.com/photo-1762341119317-fb5417c18407?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGxhcHRvcCUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NzQ5NTc1MTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-        quantity: 1,
-        price: 25990000,
-      },
-    ],
-    total: 25990000,
-    status: 'processing',
-    statusText: 'Đang xử lý',
-  },
-];
+interface UserProfileResponse {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  status: string;
+}
 
-const wishlistItems = [
-  {
-    id: 1,
-    name: 'MacBook Air M2 - Mỏng nhẹ đỉnh cao cho sáng tạo',
-    brand: 'Apple',
-    price: 28990000,
-    originalPrice: 32990000,
-    rating: 4.9,
-    reviews: 567,
-    image: 'https://images.unsplash.com/photo-1532198528077-0d9e4ca9bb40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWNib29rJTIwbGFwdG9wJTIwZGVza3xlbnwxfHx8fDE3NzQ5NTM2ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    inStock: true,
-  },
-  {
-    id: 2,
-    name: 'Lenovo ThinkPad X1 Carbon Gen 11 - Bền bỉ đa nhiệm',
-    brand: 'Lenovo',
-    price: 35990000,
-    rating: 4.8,
-    reviews: 198,
-    image: 'https://images.unsplash.com/photo-1589913649361-56d3f8762bc7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b3Jrc3RhdGlvbiUyMGxhcHRvcCUyMHBvd2VyZnVsfGVufDF8fHx8MTc3NDk1NzUxNXww&ixlib=rb-4.1.0&q=80&w=1080',
-    inStock: true,
-  },
-  {
-    id: 3,
-    name: 'MSI Gaming GF63 Thin - Gaming giá tốt hiệu năng cao',
-    brand: 'MSI',
-    price: 18990000,
-    originalPrice: 21990000,
-    rating: 4.5,
-    reviews: 289,
-    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnYW1pbmclMjBsYXB0b3AlMjBzZXR1cHxlbnwxfHx8fDE3NzQ5NTc1MTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    inStock: false,
-  },
-];
+interface UpdateProfileRequest {
+  fullName: string;
+  phone: string;
+  avatarUrl: string;
+}
 
-const addresses = [
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    phone: '0123456789',
-    address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1',
-    city: 'TP. Hồ Chí Minh',
-    isDefault: true,
-  },
-  {
-    id: 2,
-    name: 'Nguyễn Văn A',
-    phone: '0987654321',
-    address: '456 Lê Lợi, Phường Bến Thành, Quận 1',
-    city: 'TP. Hồ Chí Minh',
+interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+interface AddressResponse {
+  id: number;
+  recipientName: string;
+  phone: string;
+  addressLine: string;
+  ward: string | null;
+  district: string;
+  city: string;
+  isDefault: boolean;
+}
+
+interface AddressRequest {
+  recipientName: string;
+  phone: string;
+  addressLine: string;
+  ward?: string;
+  district: string;
+  city: string;
+  isDefault: boolean;
+}
+
+interface OrderItemResponse {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface OrderResponse {
+  id: number;
+  orderCode: string;
+  status: string;
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+  note: string | null;
+  createdAt: string;
+  items: OrderItemResponse[];
+}
+
+interface WishlistResponse {
+  productId: number;
+  productName: string;
+  slug: string;
+  basePrice: number;
+  salePrice: number | null;
+  primaryImage: string | null;
+  brandName: string;
+  addedAt: string;
+}
+
+const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1704726135027-9c6f034cfa41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1c2VyJTIwcHJvZmlsZSUyMGF2YXRhciUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NTIzMDUyMHww&ixlib=rb-4.1.0&q=80&w=1080';
+
+function formatCurrency(value: number) {
+  return `${value.toLocaleString('vi-VN')}₫`;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function getStatusLabel(status: string) {
+  const normalized = status.toLowerCase();
+  switch (normalized) {
+    case 'pending':
+      return 'Chờ xác nhận';
+    case 'confirmed':
+      return 'Đã xác nhận';
+    case 'processing':
+      return 'Đang xử lý';
+    case 'shipping':
+      return 'Đang giao';
+    case 'delivered':
+      return 'Đã giao';
+    case 'completed':
+      return 'Hoàn thành';
+    case 'cancelled':
+      return 'Đã hủy';
+    case 'refunded':
+      return 'Đã hoàn tiền';
+    default:
+      return status;
+  }
+}
+
+function getStatusColor(status: string) {
+  const normalized = status.toLowerCase();
+  switch (normalized) {
+    case 'pending':
+    case 'confirmed':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'processing':
+      return 'border-orange-200 bg-orange-50 text-orange-700';
+    case 'shipping':
+      return 'border-blue-200 bg-blue-50 text-blue-700';
+    case 'delivered':
+    case 'completed':
+      return 'border-green-200 bg-green-50 text-green-700';
+    case 'cancelled':
+    case 'refunded':
+      return 'border-red-200 bg-red-50 text-red-700';
+    default:
+      return 'border-gray-200 bg-gray-50 text-gray-700';
+  }
+}
+
+function getStatusIcon(status: string) {
+  const normalized = status.toLowerCase();
+  switch (normalized) {
+    case 'pending':
+    case 'confirmed':
+      return <Clock className="size-4 text-amber-600" />;
+    case 'processing':
+      return <Package className="size-4 text-orange-600" />;
+    case 'shipping':
+      return <Truck className="size-4 text-blue-600" />;
+    case 'delivered':
+    case 'completed':
+      return <CheckCircle className="size-4 text-green-600" />;
+    case 'cancelled':
+    case 'refunded':
+      return <X className="size-4 text-red-600" />;
+    default:
+      return <Package className="size-4 text-gray-600" />;
+  }
+}
+
+function emptyAddressForm(): AddressRequest {
+  return {
+    recipientName: '',
+    phone: '',
+    addressLine: '',
+    ward: '',
+    district: '',
+    city: '',
     isDefault: false,
-  },
-];
+  };
+}
 
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
+
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
+  const [wishlistItems, setWishlistItems] = useState<WishlistResponse[]>([]);
+  const [addresses, setAddresses] = useState<AddressResponse[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+
   const [editMode, setEditMode] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [profileForm, setProfileForm] = useState<UpdateProfileRequest>({
+    fullName: '',
+    phone: '',
+    avatarUrl: '',
+  });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return <CheckCircle className="size-5 text-green-600" />;
-      case 'shipping':
-        return <Truck className="size-5 text-blue-600" />;
-      case 'processing':
-        return <Clock className="size-5 text-orange-600" />;
-      case 'cancelled':
-        return <X className="size-5 text-red-600" />;
-      default:
-        return <Package className="size-5 text-gray-600" />;
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressMessage, setAddressMessage] = useState('');
+  const [addressForm, setAddressForm] = useState<AddressRequest>(emptyAddressForm());
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const loadBaseData = async () => {
+      setLoading(true);
+      setPageError('');
+
+      try {
+        const profileRes = await api.get<UserProfileResponse>(ENDPOINTS.USER.PROFILE);
+        setProfile(profileRes.data);
+        setProfileForm({
+          fullName: profileRes.data.fullName || '',
+          phone: profileRes.data.phone || '',
+          avatarUrl: profileRes.data.avatarUrl || '',
+        });
+
+        const [wishlistRes, addressesRes] = await Promise.allSettled([
+          api.get<WishlistResponse[]>('/wishlist'),
+          api.get<AddressResponse[]>(ENDPOINTS.USER.ADDRESSES),
+        ]);
+
+        setWishlistItems(wishlistRes.status === 'fulfilled' ? wishlistRes.value.data : []);
+        setAddresses(addressesRes.status === 'fulfilled' ? addressesRes.value.data : []);
+
+        const failedSections = [
+          wishlistRes.status === 'rejected' ? 'danh sách yêu thích' : null,
+          addressesRes.status === 'rejected' ? 'địa chỉ' : null,
+        ].filter(Boolean);
+
+        if (failedSections.length > 0) {
+          setPageError(`Không thể tải ${failedSections.join(', ')}. Các phần còn lại vẫn hiển thị bình thường.`);
+        }
+      } catch (error: any) {
+        setPageError(error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể tải trang tài khoản.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBaseData();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (activeTab !== 'orders' || ordersLoaded || ordersLoading) {
+      return;
+    }
+
+    const loadOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError('');
+
+      try {
+        const response = await api.get<OrderResponse[]>(ENDPOINTS.ORDERS.BASE);
+        setOrders(response.data);
+        setOrdersLoaded(true);
+      } catch (error: any) {
+        setOrders([]);
+        setOrdersError(error.response?.data?.error || error.response?.data?.message || 'Không thể tải đơn hàng lúc này.');
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, [activeTab, ordersLoaded, ordersLoading]);
+
+  const totalSpent = useMemo(
+    () => orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
+    [orders]
+  );
+
+  const memberLevel = useMemo(() => {
+    if (totalSpent >= 50000000) return 'Platinum';
+    if (totalSpent >= 20000000) return 'Gold';
+    if (totalSpent >= 5000000) return 'Silver';
+    return 'Member';
+  }, [totalSpent]);
+
+  const defaultAddress = useMemo(
+    () => addresses.find((address) => address.isDefault),
+    [addresses]
+  );
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleProfileChange = (field: keyof UpdateProfileRequest, value: string) => {
+    setProfileForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editMode) {
+      setEditMode(true);
+      return;
+    }
+
+    setSavingProfile(true);
+    setProfileMessage('');
+
+    try {
+      const response = await api.put<UserProfileResponse>(ENDPOINTS.USER.PROFILE, profileForm);
+      setProfile(response.data);
+      setProfileForm({
+        fullName: response.data.fullName || '',
+        phone: response.data.phone || '',
+        avatarUrl: response.data.avatarUrl || '',
+      });
+      setEditMode(false);
+      setProfileMessage('Đã cập nhật thông tin cá nhân.');
+    } catch (error: any) {
+      setProfileMessage(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật hồ sơ.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'shipping':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'processing':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+  const handleSavePassword = async () => {
+    setPasswordMessage('');
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordMessage('Vui lòng nhập đầy đủ thông tin mật khẩu.');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordMessage('Mật khẩu mới phải có ít nhất 8 ký tự.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage('Xác nhận mật khẩu mới chưa khớp.');
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const payload: ChangePasswordRequest = {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      };
+      await api.put(ENDPOINTS.USER.PASSWORD, payload);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordMessage('Đổi mật khẩu thành công.');
+    } catch (error: any) {
+      setPasswordMessage(error.response?.data?.error || error.response?.data?.message || 'Không thể đổi mật khẩu.');
+    } finally {
+      setSavingPassword(false);
     }
   };
+
+  const reloadAddresses = async () => {
+    const response = await api.get<AddressResponse[]>(ENDPOINTS.USER.ADDRESSES);
+    setAddresses(response.data);
+  };
+
+  const openNewAddressForm = () => {
+    setEditingAddressId(null);
+    setAddressForm(emptyAddressForm());
+    setShowAddressForm(true);
+    setAddressMessage('');
+  };
+
+  const openEditAddressForm = (address: AddressResponse) => {
+    setEditingAddressId(address.id);
+    setAddressForm({
+      recipientName: address.recipientName,
+      phone: address.phone,
+      addressLine: address.addressLine,
+      ward: address.ward || '',
+      district: address.district,
+      city: address.city,
+      isDefault: address.isDefault,
+    });
+    setShowAddressForm(true);
+    setAddressMessage('');
+  };
+
+  const handleAddressFormChange = (field: keyof AddressRequest, value: string | boolean) => {
+    setAddressForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveAddress = async () => {
+    setAddressMessage('');
+
+    if (!addressForm.recipientName || !addressForm.phone || !addressForm.addressLine || !addressForm.district || !addressForm.city) {
+      setAddressMessage('Vui lòng nhập đầy đủ thông tin địa chỉ.');
+      return;
+    }
+
+    setSavingAddress(true);
+
+    try {
+      const payload = { ...addressForm, ward: addressForm.ward || undefined };
+      if (editingAddressId) {
+        await api.put(`${ENDPOINTS.USER.ADDRESSES}/${editingAddressId}`, payload);
+      } else {
+        await api.post(ENDPOINTS.USER.ADDRESSES, payload);
+      }
+
+      await reloadAddresses();
+      setShowAddressForm(false);
+      setEditingAddressId(null);
+      setAddressForm(emptyAddressForm());
+      setAddressMessage('Đã lưu địa chỉ.');
+    } catch (error: any) {
+      setAddressMessage(error.response?.data?.error || error.response?.data?.message || 'Không thể lưu địa chỉ.');
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: number) => {
+    try {
+      await api.delete(`${ENDPOINTS.USER.ADDRESSES}/${addressId}`);
+      await reloadAddresses();
+      setAddressMessage('Đã xóa địa chỉ.');
+    } catch (error: any) {
+      setAddressMessage(error.response?.data?.error || error.response?.data?.message || 'Không thể xóa địa chỉ.');
+    }
+  };
+
+  const handleSetDefaultAddress = async (address: AddressResponse) => {
+    try {
+      await api.put(`${ENDPOINTS.USER.ADDRESSES}/${address.id}`, {
+        recipientName: address.recipientName,
+        phone: address.phone,
+        addressLine: address.addressLine,
+        ward: address.ward || undefined,
+        district: address.district,
+        city: address.city,
+        isDefault: true,
+      });
+      await reloadAddresses();
+      setAddressMessage('Đã cập nhật địa chỉ mặc định.');
+    } catch (error: any) {
+      setAddressMessage(error.response?.data?.error || error.response?.data?.message || 'Không thể cập nhật địa chỉ mặc định.');
+    }
+  };
+
+  const handleRemoveWishlist = async (productId: number) => {
+    try {
+      await api.delete(`/wishlist/${productId}`);
+      setWishlistItems((current) => current.filter((item) => item.productId !== productId));
+    } catch {
+      // Keep the page stable if wishlist removal fails.
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="flex h-96 items-center justify-center">
+          <Loader2 className="size-10 animate-spin text-red-600" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700">
+            {pageError || 'Không thể tải hồ sơ người dùng.'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      {/* Breadcrumb */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-red-600">
-              Trang chủ
-            </Link>
+            <Link to="/" className="hover:text-red-600">Trang chủ</Link>
             <ChevronRight className="size-4" />
             <span className="text-gray-900">Tài khoản của tôi</span>
           </nav>
@@ -197,432 +554,209 @@ export default function ProfilePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-12 gap-8">
-          {/* Sidebar */}
+        {pageError && (
+          <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            <AlertCircle className="size-5 flex-shrink-0" />
+            <span>{pageError}</span>
+          </div>
+        )}
+
+        <div className="grid gap-8 lg:grid-cols-12">
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg border p-6 sticky top-24">
-              {/* User Info */}
-              <div className="text-center mb-6 pb-6 border-b">
-                <div className="relative inline-block mb-4">
+            <div className="sticky top-24 rounded-lg border bg-white p-6">
+              <div className="mb-6 border-b pb-6 text-center">
+                <div className="relative mb-4 inline-block">
                   <ImageWithFallback
-                    src={userData.avatar}
-                    alt={userData.name}
+                    src={profile.avatarUrl || DEFAULT_AVATAR}
+                    alt={profile.fullName}
                     className="size-24 rounded-full object-cover border-4 border-red-100"
                   />
-                  <button className="absolute bottom-0 right-0 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors">
+                  <div className="absolute bottom-0 right-0 rounded-full bg-red-600 p-2 text-white">
                     <Camera className="size-4" />
-                  </button>
+                  </div>
                 </div>
-                <h2 className="font-bold text-lg mb-1">{userData.name}</h2>
-                <p className="text-sm text-gray-600 mb-3">{userData.email}</p>
-                <Badge className="bg-yellow-500 hover:bg-yellow-600">
-                  {userData.memberLevel} Member
-                </Badge>
+                <h2 className="mb-1 text-lg font-bold">{profile.fullName}</h2>
+                <p className="mb-3 text-sm text-gray-600">{profile.email}</p>
+                <Badge className="bg-yellow-500 hover:bg-yellow-600">{memberLevel}</Badge>
               </div>
 
-              {/* Menu */}
               <nav className="space-y-1">
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'overview'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <User className="size-5" />
-                  <span>Tổng quan</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'profile'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Settings className="size-5" />
-                  <span>Thông tin cá nhân</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('orders')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'orders'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Package className="size-5" />
-                  <span>Đơn hàng</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {orders.length}
-                  </Badge>
-                </button>
-                <button
-                  onClick={() => setActiveTab('wishlist')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'wishlist'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Heart className="size-5" />
-                  <span>Yêu thích</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {wishlistItems.length}
-                  </Badge>
-                </button>
-                <button
-                  onClick={() => setActiveTab('addresses')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'addresses'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <MapPin className="size-5" />
-                  <span>Địa chỉ</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('password')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'password'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Lock className="size-5" />
-                  <span>Đổi mật khẩu</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('notifications')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'notifications'
-                      ? 'bg-red-50 text-red-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Bell className="size-5" />
-                  <span>Thông báo</span>
-                </button>
+                {[
+                  ['overview', <User className="size-5" />, 'Tổng quan'],
+                  ['profile', <Settings className="size-5" />, 'Thông tin cá nhân'],
+                  ['orders', <Package className="size-5" />, 'Đơn hàng'],
+                  ['wishlist', <Heart className="size-5" />, 'Yêu thích'],
+                  ['addresses', <MapPin className="size-5" />, 'Địa chỉ'],
+                  ['password', <Lock className="size-5" />, 'Đổi mật khẩu'],
+                  ['notifications', <Bell className="size-5" />, 'Thông báo'],
+                ].map(([tab, icon, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as ActiveTab)}
+                    className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors ${
+                      activeTab === tab ? 'bg-red-50 font-medium text-red-600' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {icon}
+                    <span>{label}</span>
+                    {tab === 'wishlist' && <Badge variant="secondary" className="ml-auto">{wishlistItems.length}</Badge>}
+                  </button>
+                ))}
               </nav>
 
-              <Button variant="outline" className="w-full mt-6" asChild>
-                <Link to="/">
-                  Đăng xuất
-                </Link>
+              <Button variant="outline" className="mt-6 w-full" onClick={handleLogout}>
+                Đăng xuất
               </Button>
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-9">
-            {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-lg border p-6">
-                  <h2 className="text-2xl font-bold mb-6">Xin chào, {userData.name}!</h2>
-                  
-                  {/* Stats */}
-                  <div className="grid md:grid-cols-3 gap-6 mb-6">
-                    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-lg p-6 border border-red-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <Package className="size-10 text-red-600" />
-                        <Badge className="bg-red-600">+3 tháng này</Badge>
-                      </div>
-                      <div className="text-3xl font-bold mb-1">{userData.totalOrders}</div>
+                <div className="rounded-lg border bg-white p-6">
+                  <h2 className="mb-6 text-2xl font-bold">Xin chào, {profile.fullName}!</h2>
+
+                  <div className="mb-6 grid gap-6 md:grid-cols-3">
+                    <div className="rounded-lg border border-red-100 bg-gradient-to-br from-red-50 to-orange-50 p-6">
+                      <Package className="mb-3 size-10 text-red-600" />
+                      <div className="mb-1 text-3xl font-bold">{ordersLoaded ? orders.length : '--'}</div>
                       <div className="text-sm text-gray-600">Tổng đơn hàng</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-6 border border-blue-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <CreditCard className="size-10 text-blue-600" />
-                      </div>
-                      <div className="text-3xl font-bold mb-1">
-                        {(userData.totalSpent / 1000000).toFixed(1)}M
-                      </div>
+                    <div className="rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
+                      <CreditCard className="mb-3 size-10 text-blue-600" />
+                      <div className="mb-1 text-3xl font-bold">{ordersLoaded ? `${(totalSpent / 1000000).toFixed(1)}M` : '--'}</div>
                       <div className="text-sm text-gray-600">Tổng chi tiêu</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <Heart className="size-10 text-purple-600" />
-                      </div>
-                      <div className="text-3xl font-bold mb-1">{wishlistItems.length}</div>
+                    <div className="rounded-lg border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-6">
+                      <Heart className="mb-3 size-10 text-purple-600" />
+                      <div className="mb-1 text-3xl font-bold">{wishlistItems.length}</div>
                       <div className="text-sm text-gray-600">Sản phẩm yêu thích</div>
                     </div>
                   </div>
 
-                  {/* Member Info */}
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-6 border border-yellow-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                          <Star className="size-5 text-yellow-600 fill-yellow-600" />
-                          Hạng thành viên: {userData.memberLevel}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Thành viên từ {userData.joinDate}
-                        </p>
-                        <div className="flex gap-2">
-                          <Badge variant="outline" className="bg-white">
-                            Giảm 10% mọi đơn hàng
-                          </Badge>
-                          <Badge variant="outline" className="bg-white">
-                            Miễn phí ship
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Button size="sm">Xem ưu đãi</Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Orders */}
-                <div className="bg-white rounded-lg border p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold">Đơn hàng gần đây</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setActiveTab('orders')}
-                    >
-                      Xem tất cả
-                      <ChevronRight className="size-4 ml-1" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {orders.slice(0, 3).map((order) => (
-                      <div
-                        key={order.id}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold">#{order.id}</span>
-                            <Badge
-                              variant="outline"
-                              className={getStatusColor(order.status)}
-                            >
-                              {getStatusIcon(order.status)}
-                              <span className="ml-1">{order.statusText}</span>
-                            </Badge>
-                          </div>
-                          <span className="text-sm text-gray-500">{order.date}</span>
-                        </div>
-
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-4 mb-3">
-                            <ImageWithFallback
-                              src={item.image}
-                              alt={item.name}
-                              className="size-16 object-cover rounded border"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-medium mb-1">{item.name}</h4>
-                              <p className="text-sm text-gray-600">
-                                Số lượng: {item.quantity}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-red-600">
-                                {item.price.toLocaleString('vi-VN')}₫
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-
-                        <div className="flex items-center justify-between pt-3 border-t">
-                          <span className="text-sm text-gray-600">Tổng cộng:</span>
-                          <span className="font-bold text-lg">
-                            {order.total.toLocaleString('vi-VN')}₫
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="rounded-lg border border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50 p-6">
+                    <h3 className="mb-2 flex items-center gap-2 text-lg font-bold">
+                      <Star className="size-5 fill-yellow-600 text-yellow-600" />
+                      Hạng thành viên: {memberLevel}
+                    </h3>
+                    <p className="text-sm text-gray-600">Trạng thái tài khoản: {profile.status}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Profile Tab */}
             {activeTab === 'profile' && (
-              <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="rounded-lg border bg-white p-6">
+                <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-2xl font-bold">Thông tin cá nhân</h2>
-                  <Button
-                    variant={editMode ? 'default' : 'outline'}
-                    onClick={() => setEditMode(!editMode)}
-                  >
-                    {editMode ? (
-                      <>Lưu thay đổi</>
-                    ) : (
-                      <>
-                        <Edit className="size-4 mr-2" />
-                        Chỉnh sửa
-                      </>
-                    )}
+                  <Button onClick={handleSaveProfile} disabled={savingProfile} variant={editMode ? 'default' : 'outline'}>
+                    {savingProfile ? <><Loader2 className="mr-2 size-4 animate-spin" />Đang lưu...</> : editMode ? <><Save className="mr-2 size-4" />Lưu thay đổi</> : <><Edit className="mr-2 size-4" />Chỉnh sửa</>}
                   </Button>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="name">Họ và tên</Label>
-                    <Input
-                      id="name"
-                      defaultValue={userData.name}
-                      disabled={!editMode}
-                      className="mt-2"
-                    />
-                  </div>
+                {profileMessage && <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{profileMessage}</div>}
 
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="fullName">Họ và tên</Label>
+                    <Input id="fullName" value={profileForm.fullName} onChange={(e) => handleProfileChange('fullName', e.target.value)} disabled={!editMode} className="mt-2" />
+                  </div>
                   <div>
                     <Label htmlFor="email">Email</Label>
                     <div className="relative mt-2">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        defaultValue={userData.email}
-                        disabled={!editMode}
-                        className="pl-10"
-                      />
+                      <Mail className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="email" value={profile.email} disabled className="pl-10" />
                     </div>
                   </div>
-
                   <div>
                     <Label htmlFor="phone">Số điện thoại</Label>
                     <div className="relative mt-2">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input
-                        id="phone"
-                        defaultValue={userData.phone}
-                        disabled={!editMode}
-                        className="pl-10"
-                      />
+                      <Phone className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="phone" value={profileForm.phone} onChange={(e) => handleProfileChange('phone', e.target.value)} disabled={!editMode} className="pl-10" />
                     </div>
                   </div>
-
                   <div>
-                    <Label htmlFor="birthdate">Ngày sinh</Label>
+                    <Label htmlFor="avatarUrl">Avatar URL</Label>
                     <div className="relative mt-2">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input
-                        id="birthdate"
-                        type="date"
-                        disabled={!editMode}
-                        className="pl-10"
-                      />
+                      <Camera className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="avatarUrl" value={profileForm.avatarUrl} onChange={(e) => handleProfileChange('avatarUrl', e.target.value)} disabled={!editMode} className="pl-10" />
                     </div>
                   </div>
-
                   <div className="md:col-span-2">
-                    <Label htmlFor="address">Địa chỉ</Label>
-                    <Input
-                      id="address"
-                      defaultValue="123 Nguyễn Huệ, Quận 1, TP.HCM"
-                      disabled={!editMode}
-                      className="mt-2"
-                    />
+                    <Label>Địa chỉ mặc định</Label>
+                    <div className="mt-2 rounded-lg border bg-gray-50 p-3 text-sm text-gray-600">
+                      {defaultAddress
+                        ? [defaultAddress.addressLine, defaultAddress.ward, defaultAddress.district, defaultAddress.city].filter(Boolean).join(', ')
+                        : 'Chưa có địa chỉ mặc định'}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Orders Tab */}
             {activeTab === 'orders' && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-2xl font-bold mb-6">Đơn hàng của tôi</h2>
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-6 text-2xl font-bold">Đơn hàng của tôi</h2>
 
-                {/* Order Filters */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700">
-                    Tất cả ({orders.length})
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đang xử lý (1)
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đang giao (1)
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đã giao (1)
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đã hủy (0)
-                  </Button>
-                </div>
+                {ordersLoading && (
+                  <div className="flex items-center justify-center py-8 text-gray-500">
+                    <Loader2 className="mr-2 size-5 animate-spin" />
+                    Đang tải đơn hàng...
+                  </div>
+                )}
 
-                {/* Orders List */}
+                {ordersError && !ordersLoading && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                    {ordersError}
+                  </div>
+                )}
+
+                {!ordersLoading && !ordersError && orders.length === 0 && (
+                  <div className="rounded-lg border border-dashed p-8 text-center text-gray-500">
+                    Chưa có đơn hàng nào để hiển thị.
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="border rounded-lg p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div key={order.id} className="rounded-lg border p-6 transition-shadow hover:shadow-md">
+                      <div className="mb-4 flex items-center justify-between border-b pb-4">
                         <div className="flex items-center gap-4">
                           <div>
                             <span className="text-sm text-gray-600">Mã đơn hàng:</span>
-                            <span className="font-semibold ml-2">#{order.id}</span>
+                            <span className="ml-2 font-semibold">#{order.orderCode}</span>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(order.status)}
-                          >
+                          <Badge variant="outline" className={getStatusColor(order.status)}>
                             {getStatusIcon(order.status)}
-                            <span className="ml-1">{order.statusText}</span>
+                            <span className="ml-1">{getStatusLabel(order.status)}</span>
                           </Badge>
                         </div>
-                        <span className="text-sm text-gray-500">{order.date}</span>
+                        <span className="text-sm text-gray-500">{formatDateTime(order.createdAt)}</span>
                       </div>
 
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-4 mb-4">
-                          <ImageWithFallback
-                            src={item.image}
-                            alt={item.name}
-                            className="size-20 object-cover rounded border"
-                          />
+                      {order.items.map((item) => (
+                        <div key={item.productId} className="mb-4 flex items-center gap-4">
+                          <div className="flex size-20 items-center justify-center rounded border bg-gray-50 text-xs text-gray-400">Laptop</div>
                           <div className="flex-1">
-                            <h4 className="font-medium mb-2">{item.name}</h4>
-                            <p className="text-sm text-gray-600">
-                              Số lượng: {item.quantity}
-                            </p>
+                            <h4 className="mb-2 font-medium">{item.productName}</h4>
+                            <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-red-600 text-lg">
-                              {item.price.toLocaleString('vi-VN')}₫
-                            </p>
+                            <p className="text-lg font-semibold text-red-600">{formatCurrency(Number(item.totalPrice))}</p>
                           </div>
                         </div>
                       ))}
 
-                      <div className="flex items-center justify-between pt-4 border-t">
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to={`/order/${order.id}`}>
-                              <Eye className="size-4 mr-2" />
-                              Chi tiết
-                            </Link>
-                          </Button>
-                          {order.status === 'delivered' && (
-                            <Button variant="outline" size="sm">
-                              <Star className="size-4 mr-2" />
-                              Đánh giá
-                            </Button>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm text-gray-600 mr-3">
-                            Tổng cộng:
-                          </span>
-                          <span className="font-bold text-xl">
-                            {order.total.toLocaleString('vi-VN')}₫
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-between border-t pt-4">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/order-success?orderId=${order.orderCode}`}>
+                            <Eye className="mr-2 size-4" />
+                            Chi tiết
+                          </Link>
+                        </Button>
+                        <span className="text-xl font-bold">{formatCurrency(Number(order.totalAmount))}</span>
                       </div>
                     </div>
                   ))}
@@ -630,132 +764,141 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Wishlist Tab */}
             {activeTab === 'wishlist' && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-2xl font-bold mb-6">
-                  Sản phẩm yêu thích ({wishlistItems.length})
-                </h2>
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-6 text-2xl font-bold">Sản phẩm yêu thích ({wishlistItems.length})</h2>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  {wishlistItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      <div className="relative">
-                        <ImageWithFallback
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-48 object-cover"
-                        />
-                        <button className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-colors">
-                          <Heart className="size-5 text-red-600 fill-red-600" />
-                        </button>
-                        {!item.inStock && (
-                          <Badge className="absolute top-3 left-3 bg-red-500">
-                            Hết hàng
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <Badge variant="outline" className="mb-2">
-                          {item.brand}
-                        </Badge>
-                        <h3 className="font-semibold mb-2 line-clamp-2">
-                          {item.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center gap-1">
-                            <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{item.rating}</span>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {wishlistItems.length === 0 && (
+                    <div className="rounded-lg border border-dashed p-8 text-center text-gray-500 md:col-span-2">
+                      Chưa có sản phẩm yêu thích nào.
+                    </div>
+                  )}
+
+                  {wishlistItems.map((item) => {
+                    const currentPrice = Number(item.salePrice ?? item.basePrice);
+                    const originalPrice = Number(item.basePrice);
+                    const hasDiscount = item.salePrice !== null && item.salePrice < item.basePrice;
+
+                    return (
+                      <div key={item.productId} className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md">
+                        <div className="relative">
+                          <ImageWithFallback src={item.primaryImage || ''} alt={item.productName} className="h-48 w-full object-cover" />
+                          <button onClick={() => handleRemoveWishlist(item.productId)} className="absolute right-3 top-3 rounded-full bg-white/90 p-2 backdrop-blur-sm hover:bg-white">
+                            <Heart className="size-5 fill-red-600 text-red-600" />
+                          </button>
+                        </div>
+
+                        <div className="p-4">
+                          <Badge variant="outline" className="mb-2">{item.brandName}</Badge>
+                          <h3 className="mb-2 line-clamp-2 font-semibold">{item.productName}</h3>
+                          <p className="mb-3 text-sm text-gray-500">Đã thêm: {formatDate(item.addedAt)}</p>
+                          <div className="mb-4 flex items-baseline gap-2">
+                            <span className="text-xl font-bold text-red-600">{formatCurrency(currentPrice)}</span>
+                            {hasDiscount && <span className="text-sm text-gray-400 line-through">{formatCurrency(originalPrice)}</span>}
                           </div>
-                          <span className="text-sm text-gray-500">
-                            ({item.reviews} đánh giá)
-                          </span>
-                        </div>
-                        <div className="flex items-baseline gap-2 mb-4">
-                          <span className="text-xl font-bold text-red-600">
-                            {item.price.toLocaleString('vi-VN')}₫
-                          </span>
-                          {item.originalPrice && (
-                            <span className="text-sm text-gray-400 line-through">
-                              {item.originalPrice.toLocaleString('vi-VN')}₫
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            className="flex-1 bg-red-600 hover:bg-red-700"
-                            size="sm"
-                            disabled={!item.inStock}
-                            asChild
-                          >
-                            <Link to={`/product/${item.id}`}>
-                              Xem chi tiết
-                            </Link>
+                          <Button className="w-full bg-red-600 hover:bg-red-700" size="sm" asChild>
+                            <Link to={`/product/${item.productId}`}>Xem chi tiết</Link>
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Addresses Tab */}
             {activeTab === 'addresses' && (
-              <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="rounded-lg border bg-white p-6">
+                <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-2xl font-bold">Địa chỉ giao hàng</h2>
-                  <Button>
-                    <Plus className="size-4 mr-2" />
+                  <Button onClick={openNewAddressForm}>
+                    <Plus className="mr-2 size-4" />
                     Thêm địa chỉ mới
                   </Button>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className="border rounded-lg p-6 relative hover:shadow-md transition-shadow"
-                    >
-                      {addr.isDefault && (
-                        <Badge className="absolute top-4 right-4 bg-red-600">
-                          Mặc định
-                        </Badge>
-                      )}
+                {addressMessage && <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{addressMessage}</div>}
+
+                {showAddressForm && (
+                  <div className="mb-6 rounded-lg border border-red-100 bg-red-50 p-5">
+                    <h3 className="mb-4 text-lg font-semibold">{editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới'}</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor="recipientName">Người nhận</Label>
+                        <Input id="recipientName" value={addressForm.recipientName} onChange={(e) => handleAddressFormChange('recipientName', e.target.value)} className="mt-2" />
+                      </div>
+                      <div>
+                        <Label htmlFor="addressPhone">Số điện thoại</Label>
+                        <Input id="addressPhone" value={addressForm.phone} onChange={(e) => handleAddressFormChange('phone', e.target.value)} className="mt-2" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="addressLine">Địa chỉ chi tiết</Label>
+                        <Input id="addressLine" value={addressForm.addressLine} onChange={(e) => handleAddressFormChange('addressLine', e.target.value)} className="mt-2" />
+                      </div>
+                      <div>
+                        <Label htmlFor="ward">Phường/Xã</Label>
+                        <Input id="ward" value={addressForm.ward || ''} onChange={(e) => handleAddressFormChange('ward', e.target.value)} className="mt-2" />
+                      </div>
+                      <div>
+                        <Label htmlFor="district">Quận/Huyện</Label>
+                        <Input id="district" value={addressForm.district} onChange={(e) => handleAddressFormChange('district', e.target.value)} className="mt-2" />
+                      </div>
+                      <div>
+                        <Label htmlFor="city">Tỉnh/Thành phố</Label>
+                        <Input id="city" value={addressForm.city} onChange={(e) => handleAddressFormChange('city', e.target.value)} className="mt-2" />
+                      </div>
+                      <div className="flex items-center gap-2 pt-8">
+                        <input id="isDefault" type="checkbox" checked={addressForm.isDefault} onChange={(e) => handleAddressFormChange('isDefault', e.target.checked)} className="size-4 accent-red-600" />
+                        <Label htmlFor="isDefault">Đặt làm địa chỉ mặc định</Label>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <Button onClick={handleSaveAddress} disabled={savingAddress}>
+                        {savingAddress ? <><Loader2 className="mr-2 size-4 animate-spin" />Đang lưu...</> : 'Lưu địa chỉ'}
+                      </Button>
+                      <Button variant="outline" onClick={() => { setShowAddressForm(false); setEditingAddressId(null); setAddressForm(emptyAddressForm()); }}>
+                        Hủy
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  {addresses.length === 0 && (
+                    <div className="rounded-lg border border-dashed p-8 text-center text-gray-500 md:col-span-2">
+                      Chưa có địa chỉ nào.
+                    </div>
+                  )}
+
+                  {addresses.map((address) => (
+                    <div key={address.id} className="relative rounded-lg border p-6 transition-shadow hover:shadow-md">
+                      {address.isDefault && <Badge className="absolute right-4 top-4 bg-red-600">Mặc định</Badge>}
+
                       <div className="mb-4">
-                        <h3 className="font-bold text-lg mb-2">{addr.name}</h3>
+                        <h3 className="mb-2 text-lg font-bold">{address.recipientName}</h3>
                         <div className="space-y-2 text-sm text-gray-600">
-                          <p className="flex items-center gap-2">
-                            <Phone className="size-4" />
-                            {addr.phone}
-                          </p>
-                          <p className="flex items-start gap-2">
-                            <MapPin className="size-4 mt-0.5 flex-shrink-0" />
-                            <span>
-                              {addr.address}
-                              <br />
-                              {addr.city}
-                            </span>
-                          </p>
+                          <p className="flex items-center gap-2"><Phone className="size-4" />{address.phone}</p>
+                          <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 flex-shrink-0" /><span>{[address.addressLine, address.ward, address.district, address.city].filter(Boolean).join(', ')}</span></p>
                         </div>
                       </div>
-                      <div className="flex gap-2 pt-4 border-t">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Edit className="size-4 mr-2" />
+
+                      <div className="flex gap-2 border-t pt-4">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditAddressForm(address)}>
+                          <Edit className="mr-2 size-4" />
                           Sửa
                         </Button>
-                        {!addr.isDefault && (
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Trash2 className="size-4 mr-2" />
+                        {!address.isDefault && (
+                          <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDeleteAddress(address.id)}>
+                            <Trash2 className="mr-2 size-4" />
                             Xóa
                           </Button>
                         )}
                       </div>
-                      {!addr.isDefault && (
-                        <Button variant="ghost" size="sm" className="w-full mt-2">
+
+                      {!address.isDefault && (
+                        <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => handleSetDefaultAddress(address)}>
                           Đặt làm mặc định
                         </Button>
                       )}
@@ -765,113 +908,63 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Password Tab */}
             {activeTab === 'password' && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-2xl font-bold mb-6">Đổi mật khẩu</h2>
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-6 text-2xl font-bold">Đổi mật khẩu</h2>
+
+                {passwordMessage && <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{passwordMessage}</div>}
 
                 <div className="max-w-md space-y-6">
                   <div>
                     <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
                     <div className="relative mt-2">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input
-                        id="current-password"
-                        type="password"
-                        className="pl-10"
-                      />
+                      <Lock className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="current-password" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((current) => ({ ...current, currentPassword: e.target.value }))} className="pl-10" />
                     </div>
                   </div>
-
                   <div>
                     <Label htmlFor="new-password">Mật khẩu mới</Label>
                     <div className="relative mt-2">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input id="new-password" type="password" className="pl-10" />
+                      <Lock className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="new-password" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm((current) => ({ ...current, newPassword: e.target.value }))} className="pl-10" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Mật khẩu phải có ít nhất 8 ký tự
-                    </p>
                   </div>
-
                   <div>
                     <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
                     <div className="relative mt-2">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        className="pl-10"
-                      />
+                      <Lock className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+                      <Input id="confirm-password" type="password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm((current) => ({ ...current, confirmPassword: e.target.value }))} className="pl-10" />
                     </div>
                   </div>
-
-                  <Button className="w-full bg-red-600 hover:bg-red-700">
-                    Cập nhật mật khẩu
+                  <Button className="w-full bg-red-600 hover:bg-red-700" onClick={handleSavePassword} disabled={savingPassword}>
+                    {savingPassword ? <><Loader2 className="mr-2 size-4 animate-spin" />Đang cập nhật...</> : 'Cập nhật mật khẩu'}
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* Notifications Tab */}
             {activeTab === 'notifications' && (
-              <div className="bg-white rounded-lg border p-6">
-                <h2 className="text-2xl font-bold mb-6">Cài đặt thông báo</h2>
-
+              <div className="rounded-lg border bg-white p-6">
+                <h2 className="mb-6 text-2xl font-bold">Cài đặt thông báo</h2>
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between py-4 border-b">
-                    <div>
-                      <h3 className="font-semibold mb-1">Thông báo đơn hàng</h3>
-                      <p className="text-sm text-gray-600">
-                        Nhận thông báo về trạng thái đơn hàng
-                      </p>
+                  {[
+                    ['Thông báo đơn hàng', 'Nhận cập nhật khi trạng thái đơn hàng thay đổi.', true],
+                    ['Khuyến mãi & ưu đãi', 'Nhận thông tin về mã giảm giá và chương trình mới.', true],
+                    ['Sản phẩm mới', 'Nhận thông báo khi có laptop mới phù hợp nhu cầu.', false],
+                    ['Email marketing', 'Nhận email tổng hợp về tin tức và sản phẩm.', false],
+                    ['Thông báo SMS', 'Nhận SMS về đơn hàng và các mốc giao hàng.', true],
+                  ].map(([title, description, checked]) => (
+                    <div key={title} className="flex items-center justify-between border-b py-4 last:border-b-0">
+                      <div>
+                        <h3 className="mb-1 font-semibold">{title}</h3>
+                        <p className="text-sm text-gray-600">{description}</p>
+                      </div>
+                      <input type="checkbox" defaultChecked={checked as boolean} className="size-4 accent-red-600" />
                     </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-b">
-                    <div>
-                      <h3 className="font-semibold mb-1">Khuyến mãi & Ưu đãi</h3>
-                      <p className="text-sm text-gray-600">
-                        Nhận thông báo về các chương trình khuyến mãi
-                      </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-b">
-                    <div>
-                      <h3 className="font-semibold mb-1">Sản phẩm mới</h3>
-                      <p className="text-sm text-gray-600">
-                        Thông báo khi có sản phẩm mới
-                      </p>
-                    </div>
-                    <input type="checkbox" className="toggle" />
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-b">
-                    <div>
-                      <h3 className="font-semibold mb-1">Email marketing</h3>
-                      <p className="text-sm text-gray-600">
-                        Nhận email về tin tức và sản phẩm
-                      </p>
-                    </div>
-                    <input type="checkbox" className="toggle" />
-                  </div>
-
-                  <div className="flex items-center justify-between py-4">
-                    <div>
-                      <h3 className="font-semibold mb-1">Thông báo SMS</h3>
-                      <p className="text-sm text-gray-600">
-                        Nhận SMS về đơn hàng và khuyến mãi
-                      </p>
-                    </div>
-                    <input type="checkbox" defaultChecked className="toggle" />
-                  </div>
-
-                  <Button className="bg-red-600 hover:bg-red-700">
-                    Lưu cài đặt
-                  </Button>
+                  ))}
+                </div>
+                <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Mục này hiện là giao diện tạm thời. Backend chưa có cấu hình lưu thông báo riêng.
                 </div>
               </div>
             )}
