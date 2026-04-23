@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { ShoppingCart, User, Search, Menu, Phone, Package, Tag, Newspaper, ChevronDown, ChevronRight, Laptop, LogIn, LogOut } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ShoppingCart, User, Search, Menu, Phone, Package, Tag, Newspaper, ChevronDown, ChevronRight, Laptop, LogIn, LogOut, Bell } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:9765';
 
 const categories = [
   { id: 1, name: 'Laptop văn phòng', icon: Laptop, hasSubmenu: true },
@@ -61,14 +63,54 @@ export function Header() {
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { userLoggedIn, userFullName, logout } = useAuth();
 
-  // Đóng category menu khi click ngoài
+  // ── Fetch cart count ──────────────────────────────────────────────────────
+  const fetchCartCount = useCallback(async () => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) {
+      setCartCount(0);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/cart`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { setCartCount(0); return; }
+      const data = await res.json();
+      // API trả về { totalItems: number, ... }
+      setCartCount(typeof data.totalItems === 'number' ? data.totalItems : 0);
+    } catch {
+      setCartCount(0);
+    }
+  }, []);
+
+  // Fetch khi đăng nhập/đăng xuất hoặc khi route thay đổi
+  useEffect(() => {
+    if (userLoggedIn) {
+      fetchCartCount();
+    } else {
+      setCartCount(0);
+    }
+  }, [userLoggedIn, location.pathname, fetchCartCount]);
+
+  // Lắng nghe event 'cart-updated' để cập nhật badge ngay khi thêm/xóa giỏ hàng
+  useEffect(() => {
+    const handler = () => {
+      if (userLoggedIn) fetchCartCount();
+    };
+    window.addEventListener('cart-updated', handler);
+    return () => window.removeEventListener('cart-updated', handler);
+  }, [userLoggedIn, fetchCartCount]);
+
+  // ── Close menus on outside click ──────────────────────────────────────────
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -80,7 +122,6 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Đóng user menu khi click ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -100,6 +141,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout();
+    setCartCount(0);
     setShowUserMenu(false);
     navigate('/');
   };
@@ -136,22 +178,45 @@ export function Header() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
-              {/* User: đã đăng nhập */}
+            <div className="flex items-center gap-1">
               {userLoggedIn ? (
-                <div className="relative flex items-center gap-3" ref={userMenuRef}>
-                  {/* Giỏ hàng */}
+                <div className="relative flex items-center gap-1" ref={userMenuRef}>
+
+                  {/* ── Notification Bell ── */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative text-gray-600 hover:text-red-600 hover:bg-red-50"
+                    title="Thông báo"
+                  >
+                    <Bell className="size-5" />
+                    {/* Badge thông báo — hiện tại là static, bạn có thể nối API sau */}
+                    <span className="absolute -top-1 -right-1 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                      0
+                    </span>
+                  </Button>
+
+                  {/* ── Cart ── */}
                   <Link to="/cart">
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative text-gray-600 hover:text-red-600 hover:bg-red-50"
+                      title="Giỏ hàng"
+                    >
                       <ShoppingCart className="size-5" />
-                      <span className="absolute -top-1 -right-1 size-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        3
-                      </span>
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+                      )}
                     </Button>
                   </Link>
+
+                  {/* ── User Menu ── */}
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors ml-1"
                   >
                     <div className="size-9 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {userFullName ? userFullName.charAt(0).toUpperCase() : 'U'}
@@ -196,8 +261,6 @@ export function Header() {
                   </Link>
                 </div>
               )}
-
-              
             </div>
 
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { ProductCard } from '../components/ProductCard';
@@ -6,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../components/ui/button';
 import { Checkbox } from '../components/ui/checkbox';
 import { Label } from '../components/ui/label';
-import { ChevronLeft, ChevronRight, LayoutGrid, List, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, List, ChevronDown, ChevronUp, SlidersHorizontal, Heart, ShoppingCart, Loader2 } from 'lucide-react';
 import api, { ENDPOINTS } from '../config/apiConfig';
+import { notifyCartUpdated } from '../context/AuthContext';
 
 // ============================================================
 // Types
@@ -60,6 +62,8 @@ const PRICE_RANGES = [
 ];
 
 export default function PageItems() {
+  const navigate = useNavigate();
+
   // ── State dữ liệu ──────────────────────────────────────────
   const [products, setProducts]     = useState<Product[]>([]);
   const [brands, setBrands]         = useState<Brand[]>([]);
@@ -76,14 +80,25 @@ export default function PageItems() {
   const [currentPage, setCurrentPage] = useState(0); // API dùng 0-based
   const PAGE_SIZE = 12;
 
+  // ── Wishlist & Cart ────────────────────────────────────────
+  const [wishlistIds, setWishlistIds] = useState<Set<number>>(new Set());
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+
   // ── State UI ───────────────────────────────────────────────
   const [viewMode, setViewMode]   = useState<'grid' | 'list'>('grid');
   const [openSections, setOpenSections] = useState({ brand: true, category: true, price: true });
 
-  // ── Load brands & categories một lần ──────────────────────
+  // ── Load brands & categories + wishlist một lần ───────────
   useEffect(() => {
     api.get(ENDPOINTS.CATALOG.BRANDS).then(res => setBrands(res.data));
     api.get(ENDPOINTS.CATALOG.CATEGORIES).then(res => setCategories(res.data));
+
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (token) {
+      api.get<{ productId: number }[]>('/wishlist')
+        .then(res => setWishlistIds(new Set(res.data.map(w => w.productId))))
+        .catch(() => {});
+    }
   }, []);
 
   // ── Load products khi filter/sort/page thay đổi ────────────
@@ -153,6 +168,52 @@ export default function PageItems() {
     setSelectedPriceRange(null);
     setSortBy('newest');
     setCurrentPage(0);
+  };
+
+  // ── Cart handler ──────────────────────────────────────────
+  const handleAddToCart = async (productId: number) => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) { navigate('/login'); return; }
+    setAddingToCart(productId);
+    try {
+      const res = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:9765'}/api/cart`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ productId, quantity: 1 }),
+        }
+      );
+      if (res.ok) notifyCartUpdated();
+    } catch {}
+    finally { setAddingToCart(null); }
+  };
+
+  // ── Wishlist handler ───────────────────────────────────────
+  const handleWishlist = async (productId: number) => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) { navigate('/login'); return; }
+    const inWishlist = wishlistIds.has(productId);
+    // Optimistic update
+    setWishlistIds(prev => {
+      const next = new Set(prev);
+      inWishlist ? next.delete(productId) : next.add(productId);
+      return next;
+    });
+    try {
+      if (inWishlist) {
+        await api.delete(`/wishlist/${productId}`);
+      } else {
+        await api.post(`/wishlist/${productId}`);
+      }
+    } catch {
+      // Rollback nếu lỗi
+      setWishlistIds(prev => {
+        const next = new Set(prev);
+        inWishlist ? next.add(productId) : next.delete(productId);
+        return next;
+      });
+    }
   };
 
   // ── Map Product → ProductCard props ───────────────────────
@@ -346,9 +407,84 @@ export default function PageItems() {
                 ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
                 : 'flex flex-col gap-4'
             }`}>
-              {products.map(p => (
-                <ProductCard key={p.id} {...mapToCardProps(p)} />
-              ))}
+              {products.map(p => {
+                const card = mapToCardProps(p);
+                const inWishlist = wishlistIds.has(p.id);
+                const isAdding = addingToCart === p.id;
+                return (
+                  <div key={p.id} className="relative group bg-white rounded-xl border hover:shadow-md transition-shadow flex flex-col">
+                    {/* Image */}
+                    <div className="relative overflow-hidden rounded-t-xl">
+                      <Link to={`/product/${p.id}`}>
+                        <img
+                          src={card.image || ''}
+                          alt={card.name}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={e => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=No+Image'; }}
+                        />
+                      </Link>
+                      {card.badge && (
+                        <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                          {card.badge}
+                        </span>
+                      )}
+                      {/* Nút tim wishlist */}
+                      <button
+                        onClick={() => handleWishlist(p.id)}
+                        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1.5 shadow hover:scale-110 transition-transform"
+                        title={inWishlist ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+                      >
+                        <Heart className={`size-4 ${inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                      </button>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-4 flex flex-col flex-1">
+                      <p className="text-xs text-gray-500 mb-1">{card.brand}</p>
+                      <Link to={`/product/${p.id}`}>
+                        <h3 className="font-semibold text-sm mb-2 line-clamp-2 hover:text-red-600 transition-colors">{card.name}</h3>
+                      </Link>
+                      <div className="text-xs text-gray-500 space-y-0.5 mb-3">
+                        {card.specs.cpu && <p>CPU: {card.specs.cpu}</p>}
+                        {card.specs.ram && <p>RAM: {card.specs.ram}</p>}
+                        {card.specs.storage && <p>Ổ cứng: {card.specs.storage}</p>}
+                        {card.specs.display && <p>Màn hình: {card.specs.display}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 mb-3 text-xs text-gray-500">
+                        <span className="text-yellow-400">★</span>
+                        <span>{card.rating.toFixed(1)}</span>
+                        <span>({card.reviews})</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 mb-4 mt-auto">
+                        <span className="text-lg font-bold text-red-600">{card.price.toLocaleString('vi-VN')}₫</span>
+                        {card.originalPrice && (
+                          <span className="text-xs text-gray-400 line-through">{card.originalPrice.toLocaleString('vi-VN')}₫</span>
+                        )}
+                      </div>
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleAddToCart(p.id)}
+                          disabled={isAdding}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+                        >
+                          {isAdding
+                            ? <Loader2 className="size-4 animate-spin" />
+                            : <ShoppingCart className="size-4" />
+                          }
+                          Thêm vào giỏ
+                        </button>
+                        <Link
+                          to={`/product/${p.id}`}
+                          className="px-3 py-2 border border-gray-300 hover:border-red-600 hover:text-red-600 text-sm rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          Xem chi tiết
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 

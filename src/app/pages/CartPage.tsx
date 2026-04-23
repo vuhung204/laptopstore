@@ -79,6 +79,7 @@ export default function CartPage() {
       if (res.ok) {
         const data: CartResponse = await res.json();
         setCart(data);
+        window.dispatchEvent(new Event('cart-updated'));
       }
     } finally {
       setUpdatingId(null);
@@ -94,7 +95,10 @@ export default function CartPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) await fetchCart();
+      if (res.ok) {
+        await fetchCart();
+        window.dispatchEvent(new Event('cart-updated'));
+      }
     } finally {
       setUpdatingId(null);
     }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router';
 import {
   AlertCircle,
   Bell,
@@ -88,6 +88,8 @@ interface AddressRequest {
 interface OrderItemResponse {
   productId: number;
   productName: string;
+  brandName: string | null;
+  image: string | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -102,7 +104,7 @@ interface OrderResponse {
   shippingFee: number;
   totalAmount: number;
   note: string | null;
-  createdAt: string;
+  orderedAt: string;
   items: OrderItemResponse[];
 }
 
@@ -222,6 +224,7 @@ function emptyAddressForm(): AddressRequest {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -260,6 +263,56 @@ export default function ProfilePage() {
   const [addressMessage, setAddressMessage] = useState('');
   const [addressForm, setAddressForm] = useState<AddressRequest>(emptyAddressForm());
 
+  // -- Tách ra để có thể gọi lại khi cần (refresh)
+  const loadBaseData = async () => {
+    setLoading(true);
+    setPageError('');
+
+    try {
+      const profileRes = await api.get<UserProfileResponse>(ENDPOINTS.USER.PROFILE);
+      setProfile(profileRes.data);
+      setProfileForm({
+        fullName: profileRes.data.fullName || '',
+        phone: profileRes.data.phone || '',
+        avatarUrl: profileRes.data.avatarUrl || '',
+      });
+
+      // Đồng thời load wishlist, addresses và (nhẹ) load orders để có tổng ngay
+      const [wishlistRes, addressesRes, ordersRes] = await Promise.allSettled([
+        api.get<WishlistResponse[]>('/wishlist'),
+        api.get<AddressResponse[]>(ENDPOINTS.USER.ADDRESSES),
+        // Gọi orders để lấy tổng; nếu API trả mảng lớn có thể cân nhắc backend cung cấp summary endpoint
+        api.get<OrderResponse[]>(ENDPOINTS.ORDERS.BASE),
+      ]);
+
+      setWishlistItems(wishlistRes.status === 'fulfilled' ? wishlistRes.value.data : []);
+      setAddresses(addressesRes.status === 'fulfilled' ? addressesRes.value.data : []);
+      if (ordersRes.status === 'fulfilled') {
+        setOrders(ordersRes.value.data);
+        setOrdersLoaded(true);
+        setOrdersError('');
+      } else {
+        // Nếu fetch orders thất bại, giữ trạng thái hiện tại (không block trang)
+        setOrdersLoaded(false);
+        setOrders([]);
+        setOrdersError('Không thể tải đơn hàng.');
+      }
+
+      const failedSections = [
+        wishlistRes.status === 'rejected' ? 'danh sách yêu thích' : null,
+        addressesRes.status === 'rejected' ? 'địa chỉ' : null,
+      ].filter(Boolean);
+
+      if (failedSections.length > 0) {
+        setPageError(`Không thể tải ${failedSections.join(', ')}. Các phần còn lại vẫn hiển thị bình thường.`);
+      }
+    } catch (error: any) {
+      setPageError(error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể tải trang tài khoản.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     if (!token) {
@@ -267,46 +320,30 @@ export default function ProfilePage() {
       return;
     }
 
-    const loadBaseData = async () => {
-      setLoading(true);
-      setPageError('');
-
-      try {
-        const profileRes = await api.get<UserProfileResponse>(ENDPOINTS.USER.PROFILE);
-        setProfile(profileRes.data);
-        setProfileForm({
-          fullName: profileRes.data.fullName || '',
-          phone: profileRes.data.phone || '',
-          avatarUrl: profileRes.data.avatarUrl || '',
-        });
-
-        const [wishlistRes, addressesRes] = await Promise.allSettled([
-          api.get<WishlistResponse[]>('/wishlist'),
-          api.get<AddressResponse[]>(ENDPOINTS.USER.ADDRESSES),
-        ]);
-
-        setWishlistItems(wishlistRes.status === 'fulfilled' ? wishlistRes.value.data : []);
-        setAddresses(addressesRes.status === 'fulfilled' ? addressesRes.value.data : []);
-
-        const failedSections = [
-          wishlistRes.status === 'rejected' ? 'danh sách yêu thích' : null,
-          addressesRes.status === 'rejected' ? 'địa chỉ' : null,
-        ].filter(Boolean);
-
-        if (failedSections.length > 0) {
-          setPageError(`Không thể tải ${failedSections.join(', ')}. Các phần còn lại vẫn hiển thị bình thường.`);
-        }
-      } catch (error: any) {
-        setPageError(error.response?.data?.error || error.response?.data?.message || error.message || 'Không thể tải trang tài khoản.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadBaseData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
+  // Nếu trang được điều hướng với state.refresh hoặc có flag trong localStorage (ví dụ từ thanh toán)
   useEffect(() => {
+    const needRefresh = Boolean(location.state && (location.state as any).refresh) || Boolean(localStorage.getItem('needProfileRefresh'));
+    if (needRefresh) {
+      // xóa flag localStorage nếu có
+      localStorage.removeItem('needProfileRefresh');
+
+      // load lại dữ liệu
+      loadBaseData();
+
+      // xóa state.refresh khỏi history để tránh fetch lặp lại
+      if (location.state && (location.state as any).refresh) {
+        navigate(location.pathname, { replace: true });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+  useEffect(() => {
+    // Lazy load orders if user clicks Orders tab and orders chưa load
     if (activeTab !== 'orders' || ordersLoaded || ordersLoading) {
       return;
     }
@@ -321,6 +358,7 @@ export default function ProfilePage() {
         setOrdersLoaded(true);
       } catch (error: any) {
         setOrders([]);
+        setOrdersLoaded(true);
         setOrdersError(error.response?.data?.error || error.response?.data?.message || 'Không thể tải đơn hàng lúc này.');
       } finally {
         setOrdersLoading(false);
@@ -328,7 +366,8 @@ export default function ProfilePage() {
     };
 
     loadOrders();
-  }, [activeTab, ordersLoaded, ordersLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const totalSpent = useMemo(
     () => orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0),
@@ -581,18 +620,20 @@ export default function ProfilePage() {
               </div>
 
               <nav className="space-y-1">
-                {[
-                  ['overview', <User className="size-5" />, 'Tổng quan'],
-                  ['profile', <Settings className="size-5" />, 'Thông tin cá nhân'],
-                  ['orders', <Package className="size-5" />, 'Đơn hàng'],
-                  ['wishlist', <Heart className="size-5" />, 'Yêu thích'],
-                  ['addresses', <MapPin className="size-5" />, 'Địa chỉ'],
-                  ['password', <Lock className="size-5" />, 'Đổi mật khẩu'],
-                  ['notifications', <Bell className="size-5" />, 'Thông báo'],
-                ].map(([tab, icon, label]) => (
+                {(
+                  [
+                    ['overview', <User className="size-5" />, 'Tổng quan'],
+                    ['profile', <Settings className="size-5" />, 'Thông tin cá nhân'],
+                    ['orders', <Package className="size-5" />, 'Đơn hàng'],
+                    ['wishlist', <Heart className="size-5" />, 'Yêu thích'],
+                    ['addresses', <MapPin className="size-5" />, 'Địa chỉ'],
+                    ['password', <Lock className="size-5" />, 'Đổi mật khẩu'],
+                    ['notifications', <Bell className="size-5" />, 'Thông báo'],
+                  ] as [ActiveTab, React.ReactElement, string][]
+                ).map(([tab, icon, label]) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab as ActiveTab)}
+                    onClick={() => setActiveTab(tab)}
                     className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors ${
                       activeTab === tab ? 'bg-red-50 font-medium text-red-600' : 'text-gray-700 hover:bg-gray-50'
                     }`}
@@ -733,15 +774,23 @@ export default function ProfilePage() {
                             <span className="ml-1">{getStatusLabel(order.status)}</span>
                           </Badge>
                         </div>
-                        <span className="text-sm text-gray-500">{formatDateTime(order.createdAt)}</span>
+                        <span className="text-sm text-gray-500">{formatDateTime(order.orderedAt)}</span>
                       </div>
 
                       {order.items.map((item) => (
                         <div key={item.productId} className="mb-4 flex items-center gap-4">
-                          <div className="flex size-20 items-center justify-center rounded border bg-gray-50 text-xs text-gray-400">Laptop</div>
+                          <div className="size-20 flex-shrink-0 overflow-hidden rounded border bg-gray-50">
+                            {item.image
+                              ? <img src={item.image} alt={item.productName} className="size-full object-cover" onError={e => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              : <div className="flex size-full items-center justify-center text-xs text-gray-400">Laptop</div>
+                            }
+                          </div>
                           <div className="flex-1">
-                            <h4 className="mb-2 font-medium">{item.productName}</h4>
-                            <p className="text-sm text-gray-600">Số lượng: {item.quantity}</p>
+                            {item.brandName && <p className="mb-0.5 text-xs text-gray-500">{item.brandName}</p>}
+                            <h4 className="mb-1 font-medium line-clamp-2">{item.productName}</h4>
+                            <p className="text-sm text-gray-600">
+                              {formatCurrency(Number(item.unitPrice))} × {item.quantity}
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-semibold text-red-600">{formatCurrency(Number(item.totalPrice))}</p>
@@ -751,7 +800,7 @@ export default function ProfilePage() {
 
                       <div className="flex items-center justify-between border-t pt-4">
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={`/order-success?orderId=${order.orderCode}`}>
+                          <Link to={`/order-success?orderId=${order.id}`}>
                             <Eye className="mr-2 size-4" />
                             Chi tiết
                           </Link>
@@ -947,19 +996,21 @@ export default function ProfilePage() {
               <div className="rounded-lg border bg-white p-6">
                 <h2 className="mb-6 text-2xl font-bold">Cài đặt thông báo</h2>
                 <div className="space-y-6">
-                  {[
-                    ['Thông báo đơn hàng', 'Nhận cập nhật khi trạng thái đơn hàng thay đổi.', true],
-                    ['Khuyến mãi & ưu đãi', 'Nhận thông tin về mã giảm giá và chương trình mới.', true],
-                    ['Sản phẩm mới', 'Nhận thông báo khi có laptop mới phù hợp nhu cầu.', false],
-                    ['Email marketing', 'Nhận email tổng hợp về tin tức và sản phẩm.', false],
-                    ['Thông báo SMS', 'Nhận SMS về đơn hàng và các mốc giao hàng.', true],
-                  ].map(([title, description, checked]) => (
+                  {(
+                    [
+                      ['Thông báo đơn hàng', 'Nhận cập nhật khi trạng thái đơn hàng thay đổi.', true],
+                      ['Khuyến mãi & ưu đãi', 'Nhận thông tin về mã giảm giá và chương trình mới.', true],
+                      ['Sản phẩm mới', 'Nhận thông báo khi có laptop mới phù hợp nhu cầu.', false],
+                      ['Email marketing', 'Nhận email tổng hợp về tin tức và sản phẩm.', false],
+                      ['Thông báo SMS', 'Nhận SMS về đơn hàng và các mốc giao hàng.', true],
+                    ] as [string, string, boolean][]
+                  ).map(([title, description, checked]) => (
                     <div key={title} className="flex items-center justify-between border-b py-4 last:border-b-0">
                       <div>
                         <h3 className="mb-1 font-semibold">{title}</h3>
                         <p className="text-sm text-gray-600">{description}</p>
                       </div>
-                      <input type="checkbox" defaultChecked={checked as boolean} className="size-4 accent-red-600" />
+                      <input type="checkbox" defaultChecked={checked} className="size-4 accent-red-600" />
                     </div>
                   ))}
                 </div>

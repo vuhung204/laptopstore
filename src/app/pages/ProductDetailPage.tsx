@@ -11,6 +11,8 @@ import {
   MapPin, Clock, Award, AlertCircle, Loader2,
 } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import api from '../config/apiConfig';
+import { notifyCartUpdated } from '../context/AuthContext';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:9765';
 
@@ -84,6 +86,8 @@ export default function ProductDetailPage() {
     setError(null);
     setSelectedImage(0);
 
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
     Promise.all([
       fetch(`${API_URL}/api/products/${id}`).then(r => {
         if (!r.ok) throw new Error('Không tìm thấy sản phẩm');
@@ -95,8 +99,12 @@ export default function ProductDetailPage() {
       fetch(`${API_URL}/api/products?size=5&sort=newest`)
         .then(r => r.ok ? r.json() : null)
         .catch(() => null),
+      // Load wishlist to check if this product is already saved
+      token
+        ? api.get<{ productId: number }[]>('/wishlist').then(res => res.data).catch(() => [])
+        : Promise.resolve([]),
     ])
-      .then(([prod, reviews, related]) => {
+      .then(([prod, reviews, related, wishlist]) => {
         setProduct(prod);
         setReviewPage(reviews);
         if (related?.content) {
@@ -105,6 +113,9 @@ export default function ProductDetailPage() {
               .filter((p: any) => p.id !== Number(id))
               .slice(0, 4)
           );
+        }
+        if (Array.isArray(wishlist)) {
+          setIsWishlist(wishlist.some((w: { productId: number }) => w.productId === Number(id)));
         }
       })
       .catch(err => setError(err.message))
@@ -170,7 +181,10 @@ export default function ProductDetailPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ productId: product.id, quantity }),
       });
-      if (res.ok) alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
+      if (res.ok) {
+        notifyCartUpdated();
+        alert(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
+      }
       else alert('Không thể thêm vào giỏ hàng');
     } catch { alert('Lỗi kết nối'); }
   };
@@ -179,12 +193,12 @@ export default function ProductDetailPage() {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     if (!token) { navigate('/login'); return; }
     try {
-      const method = isWishlist ? 'DELETE' : 'POST';
-      const res = await fetch(`${API_URL}/api/wishlist/${product.id}`, {
-        method,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setIsWishlist(!isWishlist);
+      if (isWishlist) {
+        await api.delete(`/wishlist/${product.id}`);
+      } else {
+        await api.post(`/wishlist/${product.id}`);
+      }
+      setIsWishlist(prev => !prev);
     } catch { }
   };
 

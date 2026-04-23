@@ -113,7 +113,7 @@ async function apiFetch<T>(path: string, options?: { method?: 'GET' | 'POST' | '
       error.response?.data?.message
       || error.response?.data?.error
       || error.message
-      || 'Khong the ket noi may chu.'
+      || 'Không thể kết nối máy chủ.'
     );
   }
 }
@@ -214,7 +214,7 @@ export default function CheckoutPage() {
           setSelectedAddressId('new');
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Khong the tai du lieu checkout.';
+        const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu checkout.';
         if (message.includes('401')) {
           navigate('/login');
           return;
@@ -273,7 +273,7 @@ export default function CheckoutPage() {
     }
 
     if (!formData.fullName || !formData.phone || !formData.city || !formData.district || !formData.address) {
-      throw new Error('Vui long nhap day du thong tin giao hang.');
+      throw new Error('Vui lòng nhập đầy đủ thông tin giao hàng.');
     }
 
     const payload: AddressRequest = {
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
     }
 
     if (cartItems.length === 0) {
-      setSubmitError('Gio hang trong, khong the dat hang.');
+      setSubmitError('Giỏ hàng trống, không thể đặt hàng.');
       return;
     }
 
@@ -342,10 +342,11 @@ export default function CheckoutPage() {
         }
       }
 
-      navigate(`/order-success?orderId=${order.orderCode}`);
+      // CHỈNH: dùng order.id (numeric) thay vì order.orderCode
+      navigate(`/order-success?orderId=${order.id}`);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : 'Dat hang that bai, vui long thu lai.'
+        error instanceof Error ? error.message : 'Đặt hàng thất bại, vui lòng thử lại.'
       );
     } finally {
       setSubmitting(false);
@@ -359,17 +360,17 @@ export default function CheckoutPage() {
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-red-600">Trang chu</Link>
+            <Link to="/" className="hover:text-red-600">Trang chủ</Link>
             <ChevronRight className="size-4" />
-            <Link to="/cart" className="hover:text-red-600">Gio hang</Link>
+            <Link to="/cart" className="hover:text-red-600">Giỏ hàng</Link>
             <ChevronRight className="size-4" />
-            <span className="text-gray-900">Thanh toan</span>
+            <span className="text-gray-900">Thanh toán</span>
           </nav>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <h1 className="mb-8 text-3xl font-bold">Thanh toan</h1>
+        <h1 className="mb-8 text-3xl font-bold">Thanh toán</h1>
 
         {(cartError || addressError) && (
           <div className="mb-6 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
@@ -386,13 +387,13 @@ export default function CheckoutPage() {
                   <div className="flex size-8 items-center justify-center rounded-full bg-red-100">
                     <MapPin className="size-4 text-red-600" />
                   </div>
-                  <h2 className="text-xl font-bold">Dia chi giao hang</h2>
+                  <h2 className="text-xl font-bold">Địa chỉ giao hàng</h2>
                 </div>
 
                 {loadingAddresses ? (
                   <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
                     <Loader2 className="size-4 animate-spin" />
-                    Dang tai danh sach dia chi...
+                    Đang tải danh sách địa chỉ...
                   </div>
                 ) : addresses.length > 0 ? (
                   <div className="mb-6 space-y-4">
@@ -412,7 +413,7 @@ export default function CheckoutPage() {
                                 <span className="font-medium">{address.recipientName}</span>
                                 {address.isDefault && (
                                   <Badge variant="outline" className="border-green-600 text-green-600">
-                                    Mac dinh
+                                    Mặc định
                                   </Badge>
                                 )}
                               </div>
@@ -431,14 +432,14 @@ export default function CheckoutPage() {
                         <RadioGroupItem value="new" id="address-new" />
                         <Label htmlFor="address-new" className="flex cursor-pointer items-center gap-2 font-medium">
                           <PlusCircle className="size-4 text-red-600" />
-                          Su dung dia chi moi
+                          Sử dụng địa chỉ mới
                         </Label>
                       </div>
                     </RadioGroup>
                   </div>
                 ) : (
                   <div className="mb-6 rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
-                    Ban chua co dia chi luu. Hay nhap dia chi moi de tiep tuc dat hang.
+                   Bạn chưa có địa chỉ lưu. Hãy nhập địa chỉ mới để tiếp tục đặt hàng.
                   </div>
                 )}
 
@@ -447,17 +448,17 @@ export default function CheckoutPage() {
                     <User className="size-4 text-red-600" />
                   </div>
                   <h2 className="text-xl font-bold">
-                    {isUsingNewAddress ? 'Thong tin nguoi nhan' : 'Thong tin dia chi da chon'}
+                    {isUsingNewAddress ? 'Thông tin người nhận' : 'Thông tin địa chỉ đã chọn'}
                   </h2>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
-                    <Label htmlFor="fullName">Ho va ten</Label>
+                    <Label htmlFor="fullName">Họ và tên</Label>
                     <Input
                       id="fullName"
                       name="fullName"
-                      placeholder="Nguyen Van A"
+                      placeholder="Nguyễn Văn A"
                       value={formData.fullName}
                       onChange={handleInputChange}
                       disabled={!isUsingNewAddress}
@@ -466,7 +467,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="phone">So dien thoai</Label>
+                    <Label htmlFor="phone">Số điện thoại</Label>
                     <Input
                       id="phone"
                       name="phone"
@@ -492,11 +493,11 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="city">Tinh/Thanh pho</Label>
+                    <Label htmlFor="city">Tỉnh/Thành phố</Label>
                     <Input
                       id="city"
                       name="city"
-                      placeholder="Ho Chi Minh"
+                      placeholder="Hồ Chí Minh"
                       value={formData.city}
                       onChange={handleInputChange}
                       disabled={!isUsingNewAddress}
@@ -505,11 +506,11 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="district">Quan/Huyen</Label>
+                    <Label htmlFor="district">Quận/Huyện</Label>
                     <Input
                       id="district"
                       name="district"
-                      placeholder="Quan 1"
+                      placeholder="Quận 1"
                       value={formData.district}
                       onChange={handleInputChange}
                       disabled={!isUsingNewAddress}
@@ -518,7 +519,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <Label htmlFor="ward">Phuong/Xa</Label>
+                    <Label htmlFor="ward">Phường/Xã</Label>
                     <Input
                       id="ward"
                       name="ward"
@@ -530,11 +531,11 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <Label htmlFor="address">Dia chi chi tiet</Label>
+                    <Label htmlFor="address">Địa chỉ chi tiết</Label>
                     <Input
                       id="address"
                       name="address"
-                      placeholder="So nha, ten duong..."
+                      placeholder="Số nhà, tên đường..."
                       value={formData.address}
                       onChange={handleInputChange}
                       disabled={!isUsingNewAddress}
@@ -551,7 +552,7 @@ export default function CheckoutPage() {
                       onCheckedChange={(checked) => setSaveInfo(checked as boolean)}
                     />
                     <Label htmlFor="saveInfo" className="cursor-pointer">
-                      Luu dia chi nay cho lan mua sau
+                      Lưu địa chỉ nay cho lần mua sau
                     </Label>
                   </div>
                 )}
@@ -562,14 +563,14 @@ export default function CheckoutPage() {
                   <div className="flex size-8 items-center justify-center rounded-full bg-red-100">
                     <Truck className="size-4 text-red-600" />
                   </div>
-                  <h2 className="text-xl font-bold">Van chuyen</h2>
+                  <h2 className="text-xl font-bold">Vận chuyển</h2>
                 </div>
 
                 <div className="rounded-lg border p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium">Giao hang tieu chuan</p>
-                      <p className="text-sm text-gray-500">Phi ship hien tai dang duoc backend ap dung co dinh cho moi don.</p>
+                      <p className="font-medium">Giao hàng tiêu chuẩn</p>
+                      <p className="text-sm text-gray-500">Phí ship hiện tại đang được backend áp dụng cố định cho mỗi đơn.</p>
                     </div>
                     <span className="font-semibold">{formatCurrency(SHIPPING_FEE)}</span>
                   </div>
@@ -581,7 +582,7 @@ export default function CheckoutPage() {
                   <div className="flex size-8 items-center justify-center rounded-full bg-red-100">
                     <CreditCard className="size-4 text-red-600" />
                   </div>
-                  <h2 className="text-xl font-bold">Phuong thuc thanh toan</h2>
+                  <h2 className="text-xl font-bold">Phương thức thanh toán</h2>
                 </div>
 
                 <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
@@ -593,13 +594,13 @@ export default function CheckoutPage() {
                           <div className="flex items-center gap-2">
                             <Banknote className="size-5 text-gray-600" />
                             <div>
-                              <p className="font-medium">Thanh toan khi nhan hang</p>
-                              <p className="text-sm text-gray-500">Thanh toan bang tien mat khi nhan hang</p>
+                              <p className="font-medium">Thanh toán khi nhận hàng</p>
+                              <p className="text-sm text-gray-500">Thanh toán bằng tiền mặt khi nhận hàng</p>
                             </div>
                           </div>
                         </Label>
                       </div>
-                      <Badge variant="outline" className="border-green-600 text-green-600">Pho bien</Badge>
+                      <Badge variant="outline" className="border-green-600 text-green-600">Phổ biến</Badge>
                     </div>
 
                     <div className="flex items-center justify-between rounded-lg border p-4 hover:border-red-600">
@@ -609,8 +610,8 @@ export default function CheckoutPage() {
                           <div className="flex items-center gap-2">
                             <Building2 className="size-5 text-gray-600" />
                             <div>
-                              <p className="font-medium">Chuyen khoan ngan hang</p>
-                              <p className="text-sm text-gray-500">Thanh toan qua ATM hoac Internet Banking</p>
+                              <p className="font-medium">Chuyển khoản ngân hàng</p>
+                              <p className="text-sm text-gray-500">Thanh toán qua ATM hoặc Internet Banking</p>
                             </div>
                           </div>
                         </Label>
@@ -624,7 +625,7 @@ export default function CheckoutPage() {
                           <div className="flex items-center gap-2">
                             <CreditCard className="size-5 text-gray-600" />
                             <div>
-                              <p className="font-medium">The tin dung/Ghi no</p>
+                              <p className="font-medium">Thẻ tín dụng/Ghi nợ</p>
                               <p className="text-sm text-gray-500">Visa, Mastercard, JCB</p>
                             </div>
                           </div>
@@ -640,7 +641,7 @@ export default function CheckoutPage() {
                             <Wallet className="size-5 text-gray-600" />
                             <div>
                               <p className="font-medium">Vi MoMo</p>
-                              <p className="text-sm text-gray-500">Thanh toan qua vi dien tu MoMo</p>
+                              <p className="text-sm text-gray-500">Thanh toán qua ví điện tử MoMo</p>
                             </div>
                           </div>
                         </Label>
@@ -655,7 +656,7 @@ export default function CheckoutPage() {
                             <Wallet className="size-5 text-gray-600" />
                             <div>
                               <p className="font-medium">VNPay</p>
-                              <p className="text-sm text-gray-500">Thanh toan qua cong VNPay</p>
+                              <p className="text-sm text-gray-500">Thanh toán qua cổng VNPay</p>
                             </div>
                           </div>
                         </Label>
@@ -670,7 +671,7 @@ export default function CheckoutPage() {
                             <Wallet className="size-5 text-gray-600" />
                             <div>
                               <p className="font-medium">ZaloPay</p>
-                              <p className="text-sm text-gray-500">Thanh toan qua vi ZaloPay</p>
+                              <p className="text-sm text-gray-500">Thanh toán qua ví ZaloPay</p>
                             </div>
                           </div>
                         </Label>
@@ -681,16 +682,16 @@ export default function CheckoutPage() {
 
                 {paymentMethod === 'bank_transfer' && (
                   <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                    <p className="font-semibold text-blue-900">Thong tin chuyen khoan:</p>
-                    <p>Ngan hang: Vietcombank</p>
-                    <p>So tai khoan: 1234567890</p>
-                    <p>Chu tai khoan: CONG TY LAPTOPSHOP</p>
+                    <p className="font-semibold text-blue-900">Thông tin chuyển khoản:</p>
+                    <p>Ngân hàng: Vietcombank</p>
+                    <p>Số tài khoản: 1234567890</p>
+                    <p>Chủ tài khoản: CÔNG TY LAPTOPSHOP</p>
                   </div>
                 )}
 
                 {onlinePaymentMethods.includes(paymentMethod) && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    Sau khi dat hang, ban se duoc chuyen sang trang thanh toan cua <strong>{onlinePaymentLabel[paymentMethod]}</strong>.
+                    Sau khi đặt hàng, bạn sẽ được chuyển sang trang thanh toán của <strong>{onlinePaymentLabel[paymentMethod]}</strong>.
                   </div>
                 )}
               </div>
@@ -698,12 +699,12 @@ export default function CheckoutPage() {
               <div className="rounded-lg border bg-white p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <FileText className="size-5 text-gray-600" />
-                  <h2 className="text-lg font-bold">Ghi chu don hang</h2>
+                  <h2 className="text-lg font-bold">Ghi chú đơn hàng</h2>
                 </div>
                 <Textarea
                   id="note"
                   name="note"
-                  placeholder="Them ghi chu giao hang neu can..."
+                  placeholder="Thêm ghi chú giao hàng nếu cần..."
                   rows={4}
                   value={formData.note}
                   onChange={handleInputChange}
@@ -713,16 +714,16 @@ export default function CheckoutPage() {
 
             <div className="lg:col-span-1">
               <div className="sticky top-24 rounded-lg border bg-white p-6">
-                <h2 className="mb-6 text-xl font-bold">Don hang cua ban</h2>
+                <h2 className="mb-6 text-xl font-bold">Đơn hàng của bạn</h2>
 
                 <div className="mb-6 max-h-64 space-y-4 overflow-y-auto border-b pb-6">
                   {loadingCart ? (
                     <div className="flex items-center justify-center py-8 text-gray-400">
                       <Loader2 className="mr-2 size-5 animate-spin" />
-                      <span className="text-sm">Dang tai gio hang...</span>
+                      <span className="text-sm">Đang tải giỏ hàng...</span>
                     </div>
                   ) : cartItems.length === 0 && !cartError ? (
-                    <p className="py-4 text-center text-sm text-gray-500">Gio hang trong</p>
+                    <p className="py-4 text-center text-sm text-gray-500">Giỏ hàng trống</p>
                   ) : (
                     cartItems.map((item) => (
                       <div key={item.productId} className="flex gap-3">
@@ -750,17 +751,17 @@ export default function CheckoutPage() {
 
                 <div className="space-y-3 border-b pb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tam tinh</span>
+                    <span className="text-gray-600">Tạm tính</span>
                     <span className="font-medium">{formatCurrency(cartSubtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Phi van chuyen</span>
+                    <span className="text-gray-600">Phí vận chuyển</span>
                     <span className="font-medium">{formatCurrency(SHIPPING_FEE)}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between border-b py-4">
-                  <span className="text-lg font-bold">Tong cong</span>
+                  <span className="text-lg font-bold">Tổng cộng</span>
                   <span className="text-2xl font-bold text-red-600">{formatCurrency(total)}</span>
                 </div>
 
@@ -780,14 +781,14 @@ export default function CheckoutPage() {
                       className="mt-1"
                     />
                     <Label htmlFor="terms" className="cursor-pointer text-sm">
-                      Toi da doc va dong y voi dieu khoan cua website
+                      Tôi đã đọc và đồng ý với các điều khoản của website
                     </Label>
                   </div>
 
                   {!agreeTerms && (
                     <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
                       <AlertCircle className="size-4 flex-shrink-0" />
-                      <span>Vui long dong y dieu khoan de tiep tuc.</span>
+                      <span>Vui lòng đồng ý với điều khoản để tiếp tục.</span>
                     </div>
                   )}
 
@@ -800,25 +801,25 @@ export default function CheckoutPage() {
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 size-5 animate-spin" />
-                        Dang xu ly...
+                        Đang xử lý...
                       </>
                     ) : (
                       <>
                         <CheckCircle className="mr-2 size-5" />
-                        Hoan tat don hang
+                        Hoàn tất đơn hàng
                       </>
                     )}
                   </Button>
 
                   <p className="mt-4 text-center text-xs text-gray-500">
-                    Bang viec dat hang, ban dong y voi cac dieu khoan su dung cua chung toi.
+                   Bằng việc đặt hàng, bạn đồng ý với các điều khoản sử dụng của chúng tôi.
                   </p>
                 </div>
 
                 <div className="mt-6 border-t pt-6">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <CheckCircle className="size-4 text-green-600" />
-                    <span>Thanh toan an toan va bao mat</span>
+                    <span>Thanh toán an toàn va bảo mật</span>
                   </div>
                 </div>
               </div>
